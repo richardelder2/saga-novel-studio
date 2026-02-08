@@ -1,0 +1,14 @@
+# System Files
+.DS_Store
+Thumbs.db
+
+# Drafting Artifacts (Optional - currently keeping them, but good to know)
+# *.bak
+
+# Python
+__pycache__/
+*.py[cod]
+
+# IDE
+.vscode/
+.idea/
