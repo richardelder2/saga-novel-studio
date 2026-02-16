@@ -8,6 +8,26 @@ This workspace is designed to be a comprehensive "command center" for novel writ
 -   **Agents are Staff:** You have specialized "departments" (Architect, Scribe, Editor) that you summon on command.
 -   **Slash Commands:** Complex multi-step processes are triggered by simple commands.
 
+### 1.1 Project Structure Strategy
+**Recommendation: One Workspace = One Book.**
+
+### 1.1 Project Structure Strategy
+**Recommendation: One Workspace = One Book.**
+
+### 1.1 Project Structure Strategy
+**Recommendation: One Workspace = One Book.**
+
+**How to start a new book:**
+1.  **Command:** `/start-new-book`
+    -   The Agent will generate a cool name and create a new folder for you.
+2.  **Open the new folder.**
+3.  **Command:** `/kickoff`
+    -   **The Orchestrator** will greet you and offer a menu:
+        -   🧠 **Brain Dump:** Paste your messy notes, snippets, and questions. I'll sort them out.
+        -   🦁 **Tenacious Start:** Jump straight to the Internal Logic.
+        -   ✨ **Brainstorm:** Get help generating an idea.
+    -   **Tip:** Feel free to use `[brackets]` for notes and `(parentheses)` for asides. The Orchestrator knows how to read them!
+
 ## 2. The Core Workflow Loop
 
 The system follows a linear progression from idea to manuscript, though you can jump between stages at any time.
@@ -63,16 +83,44 @@ These are the specialized instructions located in `.agent/`. You can edit these 
 -   **The Deep Editor** (`deep_editor_instructions.md`): A ruthless critic.
 -   **The Lore Keeper** (`lore_keeper_instructions.md`): Technical continuity adherence.
 
-## 4. Updates & Extensions
+## 5. Updates & Extensions
 
-### The Tenacious Writing Coach (Coming Soon)
-We are currently researching the "Tenacious Writing Program" to build a specialized **Coach** persona.
--   **Goal:** To focus on mindset, sustainability, and overcoming writer's block.
--   **Status:** Pending documentation ingestion. Once active, it will offer a `/coach-me` command to help you through creative slumps.
+### The Tenacious Writing Coach (Active)
+Based on the "Novel Plotting Untangled" method by Emily & Rachel.
 
-## 5. Quick Reference
+-   **Goal:** To align your plot with your character's internal journey.
+-   **Workbook:** `01_Planning/tenacious_workbook.md` helps you map out the "Internal Logic Proof" and "Pivot Plans".
+-   **Command:** `/coach-me` - The coach will review your workbook and help you untangle plot knots.
+
+## 6. Version Control (Safety Net)
+
+Because we are working in an IDE, we use **Git** to keep your work safe.
+
+-   **"Save Draft" (Commit):** Whenever you hit a milestone (e.g., finishing a chapter), open the Source Control tab in your IDE and commit your changes with a message like "Finished Chapter 1 Draft".
+-   **"Undo" (Revert):** If an Agent makes a mess of a rewrite, you can discard changes in the Source Control tab to revert the file to its last saved state.
+-   **"Experiment" (Branch):** Want to try a new ending without losing the old one? Create a new branch (e.g., `alternate-ending`) and work there safely.
+
+## 7. Using References
+
+You can teach the agents your preferred style!
+
+### Text Style References
+-   **Goal:** Make the Scribe write like your favorite author (or your past work).
+-   **Method 1:** Paste a text sample into `00_Story_Bible/references/sample.txt`.
+-   **Method 2:** Run `/analyze-style`. I will ask you to paste the text, and I'll extract the "voice rules" into your `style_guide.md`.
+
+### Visual References (Book Covers)
+-   **Goal:** Create cover art that matches a specific vibe.
+-   **Method:**
+    1.  Save reference images (JPG/PNG) into `04_Publishing/cover_references/`.
+    2.  Run `/create-cover`.
+    3.  I will automatically use those images to guide the style of the new cover.
+
+## 8. Quick Reference
 | Goal | Command |
 | :--- | :--- |
+| **Start New Book** | `/start-new-book` |
+| **Analyze Style** | `/analyze-style` |
 | **New Idea** | `/story-idea` |
 | **Outline** | `/story-outline` |
 | **Draft** | `/write-chapter` |
