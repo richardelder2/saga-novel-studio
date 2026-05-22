@@ -8,20 +8,23 @@ This workspace is designed to be a comprehensive "command center" for novel writ
 -   **Agents are Staff:** You have specialized "departments" (Architect, Scribe, Editor) that you summon on command.
 -   **Slash Commands:** Complex multi-step processes are triggered by simple commands.
 
-### 1.1 Project Structure Strategy
+### 1.1 Project Structure & Multi-Project Isolation
 **Recommendation: One Workspace = One Book.**
 
-### 1.1 Project Structure Strategy
-**Recommendation: One Workspace = One Book.**
-
-### 1.1 Project Structure Strategy
-**Recommendation: One Workspace = One Book.**
+To maintain absolute separation between different novels and genres, prevent character or magic-system leakage, and keep your chat sessions perfectly clean, the system implements a **Multi-Project State Isolation Protocol**:
+- **Physically Separate Directories:** Each novel is cloned into its own sibling workspace directory. When you open a project directory in your IDE, the executing agent is bound to that directory and reads *only* local assets.
+- **Local Manifests (State Preservation):** Every project contains a local state save file at `00_Story_Bible/project_manifest.json` containing UUID tracking, word counts, current active chapter, and latest loop quality scores.
+- **Global Project Directory:** Run `/list-books` to print a gorgeous dashboard summarizing the progress of all active novels on your system.
+- **Restore Session Alignment:** Run `/restore-session` inside any folder on startup to automatically recalculate word counts, load local bibles, and tell the agent exactly where writing left off.
 
 **How to start a new book:**
 1.  **Command:** `/start-new-book`
-    -   The Agent will generate a cool name and create a new folder for you.
-2.  **Open the new folder.**
-3.  **Command:** `/kickoff`
+    -   The Agent will generate a cool name and create a new folder for you, automatically initializing its unique manifest and registering it.
+2.  **Open the new folder** in your IDE.
+3.  **Command:** `/restore-session`
+    -   Ensures the agent aligns its persona context perfectly to this specific book.
+4.  **Command:** `/kickoff`
+
     -   **The Orchestrator** will greet you and offer a menu:
         -   🧠 **Brain Dump:** Paste your messy notes, snippets, and questions. I'll sort them out.
         -   🦁 **Tenacious Start:** Jump straight to the Internal Logic.
@@ -120,6 +123,8 @@ You can teach the agents your preferred style!
 | Goal | Command |
 | :--- | :--- |
 | **Start New Book** | `/start-new-book` |
+| **List All Books** | `/list-books` |
+| **Restore Session** | `/restore-session` |
 | **Analyze Style** | `/analyze-style` |
 | **New Idea** | `/story-idea` |
 | **Outline** | `/story-outline` |
@@ -127,3 +132,4 @@ You can teach the agents your preferred style!
 | **Critique** | `/critique-chapter` |
 | **Cover Art** | `/create-cover` |
 | **Compile** | `/compile-manuscript` |
+

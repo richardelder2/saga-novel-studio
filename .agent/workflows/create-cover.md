@@ -1,16 +1,16 @@
 ---
-description: Generate a book cover concept.
+description: Generate a book cover concept using Google Imagen 3.0.
 ---
-1.  **Ask User:** "Describe the scene, mood, and genre for the book cover."
-2.  **Define Variables:**
-    -   `Prompt`: User input.
-    -   `StyleGuide`: Read `00_Story_Bible/style_guide.md` for tone.
-    -   `ReferenceDir`: `04_Publishing/cover_references/`
-3.  **Check:** Are there files in `ReferenceDir`?
-    -   If YES: Use them as `ImagePaths`.
-    -   If NO: Generate from scratch.
-4.  **Action:** Use `generate_image` tool.
-    -   **Prompt:** Combine `Prompt` with "Book cover design, high resolution, cinematic lighting, text placeholder for title and author name" and relevant style keywords (e.g., "Sci-fi", "Fantasy", "Minimalist").
-    -   **ImagePaths:** (Optional, from Step 3).
-    -   **ImageName:** `book_cover_concept`
-5.  **Notify:** "Cover concept generated based on your prompt (and references if provided). Check your artifacts."
+1.  **Read Context:**
+    -   `00_Story_Bible/project_manifest.json`
+    -   `00_Story_Bible/style_guide.md`
+    -   `.env`
+2.  **Ask User:** "Describe any specific visual details or art direction for the book cover (or press Enter to automatically generate based on your outline and style guide)."
+3.  **Define Variables:**
+    -   `VisualDetails`: User input.
+4.  **Action:** Run Python cover generation script.
+    -   If `VisualDetails` is empty or just whitespace:
+        -   **Command:** `python .agent/scripts/generate_cover_api.py`
+    -   Else:
+        -   **Command:** `python .agent/scripts/generate_cover_api.py --prompt "{VisualDetails}"`
+5.  **Notify:** "Book cover concept generated successfully! View the result at `04_Publishing/covers/cover_concept.png`."

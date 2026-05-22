@@ -65,6 +65,53 @@ def main():
         print(f"❌ Error copying files: {e}")
         return
 
+    # 3.5. Update and Register Manifest
+    try:
+        import uuid
+        import json
+        import datetime
+        
+        manifest_path = os.path.join(new_project_path, "00_Story_Bible", "project_manifest.json")
+        new_uuid = str(uuid.uuid4())
+        
+        # Determine clean Title from project folder name
+        title = project_name.replace("-", " ").replace("_", " ").title()
+        
+        manifest_data = {
+            "project_id": new_uuid,
+            "title": title,
+            "genre": "General Fiction", # Will be updated during kickoff
+            "created_at": datetime.date.today().isoformat(),
+            "status": {
+                "active_phase": "Phase 1: Planning",
+                "current_chapter": 0,
+                "total_chapters": 0,
+                "word_count": 0
+            },
+            "latest_scores": {
+                "foundation_score": None,
+                "drafting_score": None,
+                "editorial_score": None
+            },
+            "git_branch": "main",
+            "last_updated_at": datetime.datetime.utcnow().isoformat() + "Z"
+        }
+        
+        os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
+        with open(manifest_path, "w", encoding="utf-8") as f:
+            json.dump(manifest_data, f, indent=2)
+            
+        print("📝 Local project manifest generated.")
+        
+        # Register new book in the template's registry
+        script_path = os.path.join(current_dir, ".agent", "scripts", "manage_manifest.py")
+        if os.path.exists(script_path):
+            subprocess.run([sys.executable, script_path, "register", "--path", new_project_path], cwd=current_dir, check=True)
+            print("📋 Registered project in central repository registry.")
+            
+    except Exception as e:
+        print(f"⚠️ Warning: Could not initialize manifest or register project: {e}")
+
     # 4. Initialize Git
     try:
         print("🔧 Initializing clean version control...")
@@ -84,3 +131,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

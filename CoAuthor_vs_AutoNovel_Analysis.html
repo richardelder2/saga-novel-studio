@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoAuthor vs. AutoNovel: Architectural Comparative Analysis & Hybrid Strategy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      theme: 'dark',
+      startOnLoad: true,
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+      themeVariables: {
+        background: '#111827',
+        primaryColor: '#3b82f6',
+        primaryTextColor: '#f3f4f6',
+        primaryBorderColor: '#4b5563',
+        lineColor: '#6b7280',
+        secondaryColor: '#1f2937',
+        tertiaryColor: '#111827'
+      }
+    });
+  </script>
+  <style>
+    :root {
+      --bg-dark: #070a13;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --bg-card-hover: rgba(31, 41, 55, 0.8);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(99, 102, 241, 0.15);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      
+      /* HSL tailwind-like colors */
+      --cyan-neon: #06b6d4;
+      --purple-neon: #8b5cf6;
+      --blue-neon: #3b82f6;
+      --emerald-neon: #10b981;
+      --rose-neon: #f43f5e;
+      --amber-neon: #f59e0b;
+      
+      --gradient-primary: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 50%, #3b82f6 100%);
+      --gradient-dark: linear-gradient(180deg, #070a13 0%, #0c1020 100%);
+      --gradient-card: linear-gradient(145deg, rgba(20, 26, 45, 0.6) 0%, rgba(10, 14, 26, 0.8) 100%);
+      --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.7), 0 1px 1px 0 rgba(255, 255, 255, 0.05) inset;
+      --shadow-neon: 0 0 20px rgba(139, 92, 246, 0.15);
+      
+      --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--gradient-dark);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 80px;
+    }
+
+    h1, h2, h3, h4, h5 {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Header & Navigation */
+    header {
+      background: rgba(7, 10, 19, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 16px 0;
+    }
+
+    .header-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      background: var(--gradient-primary);
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: #fff;
+      box-shadow: var(--shadow-neon);
+    }
+
+    .logo-text h1 {
+      font-size: 1.4rem;
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.2;
+    }
+
+    .logo-text span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* Interactive Tab Menu */
+    .tabs-nav {
+      display: flex;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 4px;
+      border-radius: 99px;
+      border: 1px solid var(--border-color);
+      gap: 4px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 20px;
+      border-radius: 99px;
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: var(--transition-smooth);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      background: var(--gradient-primary);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    }
+
+    /* Main Sections */
+    .section-content {
+      display: none;
+      animation: fadeIn 0.5s ease-out forwards;
+      padding-top: 40px;
+    }
+
+    .section-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Visual Accent Hero */
+    .hero-banner {
+      background: var(--gradient-card);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 48px;
+      margin-top: 24px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-premium);
+    }
+
+    .hero-banner::before {
+      content: '';
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0,0,0,0) 70%);
+      top: -100px;
+      right: -50px;
+      pointer-events: none;
+    }
+
+    .hero-banner::after {
+      content: '';
+      position: absolute;
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, rgba(0,0,0,0) 70%);
+      bottom: -80px;
+      left: -50px;
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      background: rgba(139, 92, 246, 0.1);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 99px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--purple-neon);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 20px;
+    }
+
+    .hero-banner h2 {
+      font-size: 2.5rem;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      font-weight: 800;
+      background: linear-gradient(to right, #fff, var(--text-muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-banner p {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 800px;
+      margin-bottom: 32px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .hero-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 16px;
+      padding: 24px;
+      transition: var(--transition-smooth);
+    }
+
+    .hero-card:hover {
+      border-color: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      transform: translateY(-2px);
+    }
+
+    .hero-card-icon {
+      font-size: 2rem;
+      margin-bottom: 16px;
+      display: inline-block;
+    }
+
+    .hero-card h3 {
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+
+    .hero-card p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
+
+    /* Comparison Deck */
+    .compare-section {
+      margin-top: 40px;
+    }
+
+    .section-title {
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 28px;
+      background: var(--gradient-primary);
+      border-radius: 2px;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    .philosophy-card {
+      background: var(--gradient-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: var(--shadow-premium);
+      position: relative;
+    }
+
+    .philosophy-card.coauthor {
+      border-top: 4px solid var(--cyan-neon);
+    }
+
+    .philosophy-card.autonovel {
+      border-top: 4px solid var(--purple-neon);
+    }
+
+    .badge-icon {
+      position: absolute;
+      top: -20px;
+      right: 32px;
+      font-size: 2rem;
+      background: var(--bg-dark);
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-color);
+    }
+
+    .philosophy-card h3 {
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .philosophy-card.coauthor h3 { color: var(--cyan-neon); }
+    .philosophy-card.autonovel h3 { color: var(--purple-neon); }
+
+    .tagline {
+      font-size: 1rem;
+      font-style: italic;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      display: block;
+      border-left: 2px solid rgba(255, 255, 255, 0.1);
+      padding-left: 12px;
+    }
+
+    .philosophy-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .philosophy-list li {
+      display: flex;
+      gap: 12px;
+      font-size: 0.95rem;
+    }
+
+    .bullet-dot {
+      color: var(--cyan-neon);
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .philosophy-card.autonovel .bullet-dot {
+      color: var(--purple-neon);
+    }
+
+    /* Comparison Table Matrix */
+    .matrix-wrapper {
+      background: var(--gradient-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: var(--shadow-premium);
+      margin-top: 40px;
+    }
+
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .matrix-table th {
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px 24px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    .matrix-table td {
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 0.95rem;
+      vertical-align: top;
+    }
+
+    .matrix-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .matrix-feature {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      color: var(--text-main);
+      width: 18%;
+    }
+
+    .matrix-coauthor {
+      width: 41%;
+      border-right: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .matrix-autonovel {
+      width: 41%;
+    }
+
+    .matrix-cell-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .matrix-coauthor .matrix-cell-title { color: var(--cyan-neon); }
+    .matrix-autonovel .matrix-cell-title { color: var(--purple-neon); }
+
+    .matrix-cell-desc {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+    }
+
+    /* Interactive Diagrams Section */
+    .diagram-container {
+      background: var(--gradient-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: var(--shadow-premium);
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .diagram-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 16px;
+    }
+
+    .diagram-title {
+      font-size: 1.3rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .diagram-title-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--blue-neon);
+      box-shadow: 0 0 10px var(--blue-neon);
+    }
+
+    .diagram-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 900px;
+    }
+
+    .mermaid-box {
+      background: rgba(7, 10, 19, 0.4);
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.02);
+      display: flex;
+      justify-content: center;
+      overflow-x: auto;
+    }
+
+    /* Core Concept Info Box */
+    .info-box {
+      background: rgba(59, 130, 246, 0.05);
+      border: 1px solid rgba(59, 130, 246, 0.15);
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 32px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .info-icon {
+      font-size: 1.8rem;
+      background: rgba(59, 130, 246, 0.1);
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue-neon);
+      flex-shrink: 0;
+    }
+
+    .info-content h4 {
+      font-size: 1.1rem;
+      margin-bottom: 6px;
+      color: var(--blue-neon);
+    }
+
+    .info-content p {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+    }
+
+    /* Proposal / Blueprint Cards */
+    .blueprint-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 28px;
+      margin-top: 32px;
+    }
+
+    .blueprint-card {
+      background: var(--gradient-card);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: var(--shadow-premium);
+      transition: var(--transition-smooth);
+    }
+
+    .blueprint-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(139, 92, 246, 0.2);
+    }
+
+    .blueprint-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 12px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .step-num {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+    }
+
+    .blueprint-card.active-step {
+      border-color: rgba(139, 92, 246, 0.3);
+      box-shadow: var(--shadow-neon);
+    }
+
+    .blueprint-card.active-step h3 {
+      color: var(--purple-neon);
+    }
+
+    .blueprint-card.active-step .step-num {
+      background: var(--purple-neon);
+      color: #fff;
+      border-color: var(--purple-neon);
+    }
+
+    .blueprint-card-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    .loop-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .loop-list li {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.88rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .loop-list-title {
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .loop-list-tag {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .loop-list-tag.score {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--emerald-neon);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .loop-list-tag.judge {
+      background: rgba(244, 63, 94, 0.1);
+      color: var(--rose-neon);
+      border: 1px solid rgba(244, 63, 94, 0.2);
+    }
+
+    .loop-list-tag.human {
+      background: rgba(6, 182, 212, 0.1);
+      color: var(--cyan-neon);
+      border: 1px solid rgba(6, 182, 212, 0.2);
+    }
+
+    .loop-list-desc {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+
+    /* Implementation Guidelines List */
+    .guide-steps {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      margin-top: 32px;
+    }
+
+    .guide-step-card {
+      background: var(--gradient-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      gap: 24px;
+      position: relative;
+    }
+
+    .guide-step-icon {
+      font-size: 1.5rem;
+      background: rgba(139, 92, 246, 0.05);
+      border: 1px solid rgba(139, 92, 246, 0.1);
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--purple-neon);
+      flex-shrink: 0;
+    }
+
+    .guide-step-details h4 {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .guide-step-details p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .file-tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .file-tag {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.78rem;
+      color: var(--text-main);
+    }
+
+    .file-tag.new-file {
+      border-color: rgba(16, 185, 129, 0.2);
+      background: rgba(16, 185, 129, 0.03);
+      color: var(--emerald-neon);
+    }
+
+    .file-tag.mod-file {
+      border-color: rgba(6, 182, 212, 0.2);
+      background: rgba(6, 182, 212, 0.03);
+      color: var(--cyan-neon);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-color);
+      margin-top: 80px;
+      padding: 40px 0;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: var(--transition-smooth);
+    }
+
+    footer a:hover {
+      color: var(--purple-neon);
+    }
+
+    /* Responsive */
+    @media (max-width: 968px) {
+      .comparison-grid, .blueprint-grid {
+        grid-template-columns: 1fr;
+      }
+      .matrix-table {
+        display: block;
+        overflow-x: auto;
+      }
+      .hero-banner {
+        padding: 24px;
+      }
+      .hero-banner h2 {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="container header-wrapper">
+      <div class="logo-area">
+        <div class="logo-badge">CAMP</div>
+        <div class="logo-text">
+          <h1>CoAuthor × AutoNovel</h1>
+          <span>Architectural Comparative Analysis</span>
+        </div>
+      </div>
+      <nav class="tabs-nav">
+        <button class="tab-btn active" onclick="switchTab(event, 'summary')">💡 Overview</button>
+        <button class="tab-btn" onclick="switchTab(event, 'matrix')">📊 Comparative Matrix</button>
+        <button class="tab-btn" onclick="switchTab(event, 'loops')">🔄 Core Agent Loops</button>
+        <button class="tab-btn" onclick="switchTab(event, 'hybrid')">🧬 Hybrid Blueprint</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    
+    <!-- Tab 1: Executive Summary -->
+    <div id="summary" class="section-content active">
+      <div class="hero-banner">
+        <span class="hero-badge">Analytical Insight</span>
+        <h2>Bridging Character-Driven Craft with Programmatic Autonomy</h2>
+        <p>
+          This comparative analysis breaks down the fundamental design differences between your existing **CoAuthor Workspace** (built on the character-centric <em>Novel Plotting Untangled</em> system) and the **Nous Research AutoNovel** pipeline (built on fully automated, metric-gated <em>Hermes Agent</em> loops).
+        </p>
+        <div class="hero-grid">
+          <div class="hero-card">
+            <span class="hero-card-icon">👥</span>
+            <h3>Collaborative Co-Authoring</h3>
+            <p>Your current workspace is IDE-native. It prioritizes human-in-the-loop writing, treating AI personas as a specialized "writing staff" acting on manual commands. It treats markdown files as the ultimate source of truth.</p>
+          </div>
+          <div class="hero-card">
+            <span class="hero-card-icon">⚡</span>
+            <h3>Autonomous Autoresearch</h3>
+            <p>AutoNovel is pipeline-driven. It eliminates manual steps in favor of a multi-phase programmatic execution (Python + uv), using adversarial AI critics, reader panels, and score-threshold evaluation to run loops in parallel.</p>
+          </div>
+          <div class="hero-card">
+            <span class="hero-card-icon">🧬</span>
+            <h3>The CAMP Hybrid</h3>
+            <p>Our proposed <strong>CAMP (Collaborative Agentic Multi-Phase) Loops</strong> adaptation marries both. We translate AutoNovel's robust scoring and adversarial criticism into lightweight, interactive workflows inside your IDE.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="compare-section">
+        <h2 class="section-title">Core Philosophies Compared</h2>
+        <div class="comparison-grid">
+          
+          <!-- CoAuthor Philosophy -->
+          <div class="philosophy-card coauthor">
+            <div class="badge-icon">✍️</div>
+            <h3>CoAuthor Workspace</h3>
+            <span class="tagline">"The Writer as Creative Director"</span>
+            <ul class="philosophy-list">
+              <li>
+                <span class="bullet-dot">▪</span>
+                <div>
+                  <strong>Human-in-the-Loop Orchestration:</strong> Commands are triggered manually by the user in the IDE. Writing is a lockstep dance of incremental checks and manual modifications.
+                </div>
+              </li>
+              <li>
+                <span class="bullet-dot">▪</span>
+                <div>
+                  <strong>Character-Driven Story Engine:</strong> Anchored strictly by the <em>Novel Plotting Untangled</em> methodology, ensuring every external plot point is a direct consequence of a character's flawed belief (Internal Obstacle) and character arc (Pivot Plans).
+                </div>
+              </li>
+              <li>
+                <span class="bullet-dot">▪</span>
+                <div>
+                  <strong>Subjective & Intuitive QA:</strong> Quality is judged by the user. Critique personas (like the <em>Deep Editor</em>) offer narrative feedback directly to files, which the human reads and integrates.
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- AutoNovel Philosophy -->
+          <div class="philosophy-card autonovel">
+            <div class="badge-icon">🤖</div>
+            <h3>AutoNovel Pipeline</h3>
+            <span class="tagline">"Forward Progress Over Perfection"</span>
+            <ul class="philosophy-list">
+              <li>
+                <span class="bullet-dot">▪</span>
+                <div>
+                  <strong>Programmatic Autonomy:</strong> Orchestrated via Python scripts under a CLI pipeline. The agent uses tools autonomously, calling APIs sequentially to build complex structures without requiring active human presence.
+                </div>
+              </li>
+              <li>
+                <span class="bullet-dot">▪</span>
+                <div>
+                  <strong>Adversarial Critique & Score Gates:</strong> Uses programmatically enforced scoring (e.g., world score &gt; 7.5, chapter score &gt; 6.0). AI Critic judges attack draft flaws in multi-generational loops.
+                </div>
+              </li>
+              <li>
+                <span class="bullet-dot">▪</span>
+                <div>
+                  <strong>Typeset, Audio, & File Packaging:</strong> Goes far beyond Markdown drafts. Outputs print-ready typeset PDFs (via LaTeX), ePubs, multi-voice audiobook scripts, and curated visual layouts.
+                </div>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+      
+      <div class="info-box">
+        <div class="info-icon">💡</div>
+        <div class="info-content">
+          <h4>Why a Hybrid Approach?</h4>
+          <p>
+            An purely autonomous pipeline like AutoNovel often lacks the subtle creative direction, emotional nuance, and precise control that a human novelist brings. Conversely, your current CoAuthor workspace requires the writer to manually trigger every critique, draft, and check. By injecting <strong>AutoNovel's score-gated loops</strong> as semi-automated, non-blocking processes in your IDE, you get a powerful co-writing engine that runs in the background while keeping you as the absolute creative authority.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Architectural Comparison Matrix -->
+    <div id="matrix" class="section-content">
+      <h2 class="section-title">Deep-Dive Comparison Matrix</h2>
+      <div class="matrix-wrapper">
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th>Feature Area</th>
+              <th>CoAuthor Workspace (Your Project)</th>
+              <th>AutoNovel (Nous Research)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="matrix-feature">Orchestration & Control</td>
+              <td class="matrix-coauthor">
+                <div class="matrix-cell-title">IDE-Native Workflows</div>
+                <div class="matrix-cell-desc">Managed by lightweight markdown workflows executed by the workspace agent (Orchestrator). High human-agent bandwidth. Works entirely on active workspace directories.</div>
+              </td>
+              <td class="matrix-autonovel">
+                <div class="matrix-cell-title">CLI Pipeline & Python CLI</div>
+                <div class="matrix-cell-desc">Written in Python using the Hermes Agent framework. Executed via CLI with UV package manager. Agents run completely independently through code-driven state loops.</div>
+              </td>
+            </tr>
+            <tr>
+              <td class="matrix-feature">Narrative Craft Theory</td>
+              <td class="matrix-coauthor">
+                <div class="matrix-cell-title">Character & Plot Integration</div>
+                <div class="matrix-cell-desc">Strictly adheres to the "Internal Logic Proof" (flawed beliefs, pivot plans, Act 2a/2b midpoint breaks, and dark night pivots). Emphasizes tight thematic resonance.</div>
+              </td>
+              <td class="matrix-autonovel">
+                <div class="matrix-cell-title">Global Rules & Structuring</div>
+                <div class="matrix-cell-desc">Guided by high-level systemic bibles: CRAFT.md (core structure), ANTI-SLOP.md (cliché filters), and ANTI-PATTERNS.md (narrative structure, pacing errors, pacing checks).</div>
+              </td>
+            </tr>
+            <tr>
+              <td class="matrix-feature">Evaluation Mechanics</td>
+              <td class="matrix-coauthor">
+                <div class="matrix-cell-title">Qualitative Critique</div>
+                <div class="matrix-cell-desc">Deep Editor and Lore Keeper personas review drafts manually, saving critiques as markdown documents for the human to read, approve, or rewrite.</div>
+              </td>
+              <td class="matrix-autonovel">
+                <div class="matrix-cell-title">Quantitative Score-Gates</div>
+                <div class="matrix-cell-desc">AI Critics act as rigorous adversarial judges giving numerical scores. Generations loop automatically (e.g. up to 5 times) until a threshold is met. Includes plateau detection.</div>
+              </td>
+            </tr>
+            <tr>
+              <td class="matrix-feature">Workflow Loop Design</td>
+              <td class="matrix-coauthor">
+                <div class="matrix-cell-title">Linear & Jumpable Stages</div>
+                <div class="matrix-cell-desc">Plan, outline, write chapter-by-chapter, critique. Human can freely jump stages, edit files directly, and run commands out of order.</div>
+              </td>
+              <td class="matrix-autonovel">
+                <div class="matrix-cell-title">Multi-Layered Autoresearch Loops</div>
+                <div class="matrix-cell-desc">Multi-phase architecture (Foundation -> Draft -> Adversarial Edit -> Opus Review -> Production) with automated exit conditions. Extremely optimized for bulk production.</div>
+              </td>
+            </tr>
+            <tr>
+              <td class="matrix-feature">Asset Production</td>
+              <td class="matrix-coauthor">
+                <div class="matrix-cell-title">Markdown Manuscript</div>
+                <div class="matrix-cell-desc">Compiles markdown files into one massive manuscript draft. Simple image generator commands for cover art concepts.</div>
+              </td>
+              <td class="matrix-autonovel">
+                <div class="matrix-cell-title">Professional Print & Audiobook</div>
+                <div class="matrix-cell-desc">LaTeX engine compile (PDF), ePub assembly, styled graphics, and an advanced script parser that segments speakers for multi-voice TTS audiobook synthesis.</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 3: Core Agent Loops (Visualizing AutoNovel) -->
+    <div id="loops" class="section-content">
+      <h2 class="section-title">The AutoNovel Core: Autoresearch Loop (Programmatic)</h2>
+      <p class="diagram-desc">
+        The AutoNovel architecture is heavily inspired by <em>autoresearch</em> frameworks. Its fundamental mechanism is a programmatically enforced feedback loop that evaluates each asset (Bibles, Outlines, Chapters) against scoring metrics and repeats generation with critic feedback until the gate conditions are satisfied.
+      </p>
+
+      <div class="diagram-container">
+        <div class="diagram-header">
+          <div class="diagram-title">
+            <span class="diagram-title-dot"></span>
+            <span>Autonomous Evaluative Loop (Phase 1 & Phase 2 in AutoNovel)</span>
+          </div>
+        </div>
+        <div class="mermaid-box">
+          <pre class="mermaid">
+          graph TD
+            Start[Start Phase] --> Input[Input Prompt / Chapter Beats]
+            Input --> Generate[Generate Asset / Chapter Draft]
+            Generate --> Critic[AI Adversarial Critic Analysis]
+            Critic --> Score[Generate Numeric Score]
+            Score --> Decision{Score >= Threshold?}
+            
+            Decision -- No & Max Tries Not Reached -- &gt; Feedback[Inject Critique Feedback as System Context]
+            Feedback --> Generate
+            
+            Decision -- No & Max Tries Reached -- &gt; Plateau{Plateau Detected?}
+            Plateau -- Yes -- &gt; AcceptBest[Accept Best Scored Version]
+            Plateau -- No -- &gt; Fallback[Fallback to High-Model Redraft]
+            
+            Decision -- Yes -- &gt; Pass[Approve Asset]
+            AcceptBest --> Pass
+            Fallback --> Pass
+            
+            Pass --> Next[Proceed to Next Chapter / Phase]
+            
+            style Start fill:#1f2937,stroke:#4b5563,stroke-width:1px,color:#fff
+            style Generate fill:#1e1b4b,stroke:#8b5cf6,stroke-width:2px,color:#fff
+            style Critic fill:#31102f,stroke:#f43f5e,stroke-width:2px,color:#fff
+            style Score fill:#111827,stroke:#f59e0b,stroke-width:1px,color:#fff
+            style Decision fill:#0c2d3a,stroke:#06b6d4,stroke-width:2px,color:#fff
+            style Pass fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff
+            style Next fill:#1f2937,stroke:#4b5563,stroke-width:1px,color:#fff
+          </pre>
+        </div>
+      </div>
+      
+      <div class="diagram-container" style="margin-top: 40px;">
+        <div class="diagram-header">
+          <div class="diagram-title">
+            <span class="diagram-title-dot" style="background:var(--purple-neon); box-shadow:0 0 10px var(--purple-neon);"></span>
+            <span>Phase 3: Adversarial Revision & Dual-Persona Opus Review Loop</span>
+          </div>
+        </div>
+        <div class="mermaid-box">
+          <pre class="mermaid">
+          graph LR
+            Draft[Raw Chapter Draft] --> RevAgent[Adversarial Revision Agent]
+            RevAgent --> RulesCheck{Verify: CRAFT, ANTI-SLOP, ANTI-PATTERNS}
+            RulesCheck -- Fails Slop/Clichés -- &gt; Rewrite[Rewrite with Strict Instructions]
+            Rewrite --> RulesCheck
+            
+            RulesCheck -- Passes Rules -- &gt; OpusReview{Dual-Persona Opus Review}
+            Note[Persona 1: Fiction Professor <br> Persona 2: Literary Critic] -.-> OpusReview
+            
+            OpusReview -- Flags Structural Issues -- &gt; StructuralBrief[Generate Revision Brief]
+            StructuralBrief --> RevAgent
+            
+            OpusReview -- Minor/Subjective Only -- &gt; Production[Final Export Stage]
+            
+            style Draft fill:#1f2937,stroke:#4b5563,color:#fff
+            style RevAgent fill:#1e1b4b,stroke:#8b5cf6,stroke-width:2px,color:#fff
+            style RulesCheck fill:#111827,stroke:#f59e0b,stroke-width:1px,color:#fff
+            style Rewrite fill:#31102f,stroke:#rose-neon,stroke-width:1px,color:#fff
+            style OpusReview fill:#0c2d3a,stroke:#06b6d4,stroke-width:2px,color:#fff
+            style Production fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff
+          </pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 4: Proposed CAMP Collaborative Hybrid Blueprint -->
+    <div id="hybrid" class="section-content">
+      <div class="hero-banner" style="background:var(--gradient-card);">
+        <span class="hero-badge" style="background:rgba(6,182,212,0.1); border-color:rgba(6,182,212,0.2); color:var(--cyan-neon);">Adaptation Strategy</span>
+        <h2>The CAMP Loops Blueprint (Collaborative Agentic Multi-Phase)</h2>
+        <p>
+          We propose adapting AutoNovel's robust loops into **CoAuthor** by introducing score gates and adversarial checkpoints that do not lock you out, but rather act as a powerful co-writing engine. The human serves as the <strong>Supreme Arbiter</strong>, able to bypass score-gates, override AI judges, and easily tune loop settings.
+        </p>
+      </div>
+
+      <!-- CAMP Visual Diagram -->
+      <div class="diagram-container" style="margin-top: 32px;">
+        <div class="diagram-header">
+          <div class="diagram-title">
+            <span class="diagram-title-dot" style="background:var(--cyan-neon); box-shadow:0 0 10px var(--cyan-neon);"></span>
+            <span>CAMP Hybrid Workflow Loop</span>
+          </div>
+        </div>
+        <div class="mermaid-box">
+          <pre class="mermaid">
+          graph TD
+            HumanIdea[Human Pitch / Brain Dump] --> P1[Phase 1: Foundation Loop]
+            P1 --> FoundationScore{Foundation Score >= 7.5?}
+            FoundationScore -- Fails -- &gt; FoundReview[Show Critic & Core Discrepancies to Human]
+            FoundReview --> HumanDecision1{Human Directs AI or Bypasses?}
+            HumanDecision1 -- AI Re-aligns -- &gt; P1
+            HumanDecision1 -- Force Pass -- &gt; P2[Phase 2: Drafting Loop]
+            FoundationScore -- Passes -- &gt; P2
+            
+            P2 --> ScribeDraft[Scribe Drafts Scene from Beats]
+            ScribeDraft --> CritGate{Critic Score >= 6.5?}
+            CritGate -- Fails -- &gt; AutoRetry[AI Scribe Retries with Anti-Slop Guidelines]
+            AutoRetry --> CritGate
+            CritGate -- Passes -- &gt; HumanDraftReview[Human Reads & Edits Directly in IDE]
+            
+            HumanDraftReview --> P3[Phase 3: Adversarial Revision Loop]
+            P3 --> AntiSlop[Anti-Slop Cliché Scanner]
+            AntiSlop --> CritiqueDraft[Adversarial Critique & Plateau Detection]
+            CritiqueDraft --> HumanArbiter{Human supreme edit / approval}
+            
+            HumanArbiter -- Reject -- &gt; ScribeDraft
+            HumanArbiter -- Accept -- &gt; P4[Phase 4: Advanced Production Loop]
+            
+            P4 --> LaTex[Compile to LaTeX PDF / ePub / Audio Multi-Voice Mapping]
+            
+            style HumanIdea fill:#1f2937,stroke:#4b5563,color:#fff
+            style P1 fill:#1e1b4b,stroke:#8b5cf6,stroke-width:2px,color:#fff
+            style FoundationScore fill:#111827,stroke:#f59e0b,stroke-width:1px,color:#fff
+            style FoundReview fill:#31102f,stroke:#f43f5e,stroke-width:1px,color:#fff
+            style HumanDecision1 fill:#0c2d3a,stroke:#06b6d4,stroke-width:2px,color:#fff
+            style P2 fill:#1e1b4b,stroke:#8b5cf6,stroke-width:2px,color:#fff
+            style CritGate fill:#111827,stroke:#f59e0b,stroke-width:1px,color:#fff
+            style HumanDraftReview fill:#0c2d3a,stroke:#06b6d4,stroke-width:2px,color:#fff
+            style P3 fill:#1e1b4b,stroke:#8b5cf6,stroke-width:2px,color:#fff
+            style HumanArbiter fill:#0c2d3a,stroke:#06b6d4,stroke-width:2px,color:#fff
+            style P4 fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff
+          </pre>
+        </div>
+      </div>
+
+      <!-- CAMP Four Phases Blueprint -->
+      <div class="blueprint-grid">
+        
+        <!-- Phase 1 -->
+        <div class="blueprint-card active-step">
+          <h3><span class="step-num">1</span> Co-Planning & Foundation Loop</h3>
+          <p class="blueprint-card-desc">Translates AutoNovel's autonomous bible generator into an interactive workshop that score-gates the planning files until the internal story logic aligns.</p>
+          <ul class="loop-list">
+            <li>
+              <div class="loop-list-title">
+                <span>Aligning Internal Logic</span>
+                <span class="loop-list-tag human">Interactive</span>
+              </div>
+              <div class="loop-list-desc">The human pastes a raw pitch or does a kickoff. The Orchestrator drafts character profiles, locations, and bibles in `00_Story_Bible`.</div>
+            </li>
+            <li>
+              <div class="loop-list-title">
+                <span>The Foundation Score Gate</span>
+                <span class="loop-list-tag score">Score Gate &gt;= 7.5</span>
+              </div>
+              <div class="loop-list-desc">An AI Judge reviews files for theme alignment using the <em>Internal Logic Proof</em>. It grades the outline and lore. If it fails, it highlights structural gaps for the human.</div>
+            </li>
+            <li>
+              <div class="loop-list-title">
+                <span>Supreme Human Arbiter Bypass</span>
+                <span class="loop-list-tag human">Override</span>
+              </div>
+              <div class="loop-list-desc">If the human loves the bible despite a low score, they bypass the gate to lock the foundations and compile a `bible_canon_rules.json` to act as systemic lore truth.</div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="blueprint-card active-step">
+          <h3><span class="step-num">2</span> Collaborative Drafting Loop</h3>
+          <p class="blueprint-card-desc">Enables automated, iterative drafting attempts behind the scenes before presenting the best option to the writer in the IDE.</p>
+          <ul class="loop-list">
+            <li>
+              <div class="loop-list-title">
+                <span>The Scribe Draft Attempts</span>
+                <span class="loop-list-tag judge">Iterative</span>
+              </div>
+              <div class="loop-list-desc">Scribe reads the `chapter_beats.md` and generates three distinct creative attempts (e.g. dramatic, suspenseful, sensory-heavy) behind the scenes.</div>
+            </li>
+            <li>
+              <div class="loop-list-title">
+                <span>AI Critique Score Gate</span>
+                <span class="loop-list-tag score">Score Gate &gt;= 6.5</span>
+              </div>
+              <div class="loop-list-desc">The Critique agent scores each attempt based on character consistency (Lore Keeper rules), pacing, and sensory integration. Failed drafts are automatically retried with refined prompts.</div>
+            </li>
+            <li>
+              <div class="loop-list-title">
+                <span>Writer Selection & Direct Edit</span>
+                <span class="loop-list-tag human">Co-Write</span>
+              </div>
+              <div class="loop-list-desc">The workspace agent displays the highest-scoring draft and presents a list of options. The writer reviews the differences and directly refines the text in the IDE.</div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Phase 3 -->
+        <div class="blueprint-card active-step">
+          <h3><span class="step-num">3</span> Adversarial Revision Loop</h3>
+          <p class="blueprint-card-desc">Implements AutoNovel's adversarial revision cycle—utilizing specialized rules checklists to run multiple cleanup iterations automatically.</p>
+          <ul class="loop-list">
+            <li>
+              <div class="loop-list-title">
+                <span>Anti-Slop Cliché Scanner</span>
+                <span class="loop-list-tag judge">Autonomous</span>
+              </div>
+              <div class="loop-list-desc">A specialized sub-agent scans prose against `ANTI-SLOP.md` (e.g. flagging 'shivers down spines', 'testament to', 'smirked') and programmatically cleans clichés.</div>
+            </li>
+            <li>
+              <div class="loop-list-title">
+                <span>Plateau Detection Gate</span>
+                <span class="loop-list-tag score">Delta Metric &lt; 0.1</span>
+              </div>
+              <div class="loop-list-desc">The Deep Editor and Scribe engage in a loop of critiques and micro-rewrites. When the quality score difference between edits drops below 0.1, the loop stops.</div>
+            </li>
+            <li>
+              <div class="loop-list-title">
+                <span>Dual-Persona Opus Review</span>
+                <span class="loop-list-tag human">Executive Approval</span>
+              </div>
+              <div class="loop-list-desc">Sends the full chapter to a dual-persona judge (literary critic + writing mentor). Save the final brief in `03_Review` and alert the writer for final manual signoff.</div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Phase 4 -->
+        <div class="blueprint-card active-step">
+          <h3><span class="step-num">4</span> Advanced Production Loop</h3>
+          <p class="blueprint-card-desc">Adapts AutoNovel's typesetting and audiobook features into IDE-driven outputs, transforming raw markdown into publication-ready files.</p>
+          <ul class="loop-list">
+            <li>
+              <div class="loop-list-title">
+                <span>Automated LaTeX Typesetter</span>
+                <span class="loop-list-tag judge">Autonomous</span>
+              </div>
+              <div class="loop-list-desc">Compiles the compiled manuscript into beautiful LaTeX PDF layouts (with options for headers, drop caps, and section dividers) and valid ePUB files.</div>
+            </li>
+            <li>
+              <div class="loop-list-title">
+                <span>Multi-Voice Audiobook Parser</span>
+                <span class="loop-list-tag human">Interactive Mapping</span>
+              </div>
+              <div class="loop-list-desc">The agent scans the manuscript, parses all dialogue, tags who is speaking based on context, and lists character voices. The human maps TTS voices to characters to compile audio.</div>
+            </li>
+            <li>
+              <div class="loop-list-title">
+                <span>Visual Curation Loop</span>
+                <span class="loop-list-tag judge">Image Synthesis</span>
+              </div>
+              <div class="loop-list-desc">Generates cover concepts by analyzing reference art, book metadata, and applying custom visual motifs (ornaments, custom borders) for final manual export.</div>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- How to Implement in CoAuthor Workspace -->
+      <h2 class="section-title" style="margin-top: 48px;">How to Implement This in Your Workspace</h2>
+      <p class="diagram-desc">
+        To transition your current workspace to this hybrid CAMP Loop structure, you don't need to rebuild your environment. Instead, you can incrementally add specialized rules, bibles, and update your local IDE workflow files.
+      </p>
+
+      <div class="guide-steps">
+        
+        <div class="guide-step-card">
+          <div class="guide-step-icon">📁</div>
+          <div class="guide-step-details">
+            <h4>1. Add Core Systemic Bibles</h4>
+            <p>Create these guidelines inside your story bible folder to restrict agent behavior programmatically across all drafting and editing loops. They act as strict prompts for the critique agent.</p>
+            <div class="file-tag-row">
+              <span class="file-tag new-file">[NEW] 00_Story_Bible/rules/CRAFT.md</span>
+              <span class="file-tag new-file">[NEW] 00_Story_Bible/rules/ANTI-SLOP.md</span>
+              <span class="file-tag new-file">[NEW] 00_Story_Bible/rules/ANTI-PATTERNS.md</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="guide-step-card">
+          <div class="guide-step-icon">🤖</div>
+          <div class="guide-step-details">
+            <h4>2. Define the Evaluator & Critic Personas</h4>
+            <p>Introduce the Critic/Evaluator instructions in your agent configurations. These define how the scoring is calculated and provide structural critique templates.</p>
+            <div class="file-tag-row">
+              <span class="file-tag new-file">[NEW] .agent/evaluator_instructions.md</span>
+              <span class="file-tag mod-file">[MODIFY] .agent/deep_editor_instructions.md</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="guide-step-card">
+          <div class="guide-step-icon">🔄</div>
+          <div class="guide-step-details">
+            <h4>3. Update Slash Command Workflows to Loop Programmatically</h4>
+            <p>Modify your workflow markdown files to instruct the agent to run in loops. Introduce step conditions that check numeric score evaluations and prompt loops.</p>
+            <div class="file-tag-row">
+              <span class="file-tag mod-file">[MODIFY] .agent/workflows/story-outline.md (Loop P1)</span>
+              <span class="file-tag mod-file">[MODIFY] .agent/workflows/write-chapter.md (Loop P2)</span>
+              <span class="file-tag mod-file">[MODIFY] .agent/workflows/critique-chapter.md (Loop P3)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="guide-step-card">
+          <div class="guide-step-icon">📦</div>
+          <div class="guide-step-details">
+            <h4>4. Create the Production Workflow</h4>
+            <p>Introduce a new slash command `/publish-manuscript` that handles LaTeX rendering, ePUB validation, and audiobook script parsing, utilizing the command-line scripts.</p>
+            <div class="file-tag-row">
+              <span class="file-tag new-file">[NEW] .agent/workflows/publish-manuscript.md</span>
+              <span class="file-tag new-file">[NEW] .agent/scripts/latex_typeset.py</span>
+              <span class="file-tag new-file">[NEW] .agent/scripts/audiobook_voice_parser.py</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>CoAuthor × AutoNovel Architectural Analysis Report • Crafted with HSL Theme, Google Fonts & Mermaid.js</p>
+      <p style="margin-top: 10px; font-size: 0.75rem;">Created by Antigravity • Gemini 3.5 Flash (High)</p>
+    </div>
+  </footer>
+
+  <!-- Tab Switch Script -->
+  <script>
+    function switchTab(event, tabId) {
+      // Hide all sections
+      const sections = document.querySelectorAll('.section-content');
+      sections.forEach(section => {
+        section.classList.remove('active');
+      });
+
+      // Deactivate all tab buttons
+      const buttons = document.querySelectorAll('.tab-btn');
+      buttons.forEach(button => {
+        button.classList.remove('active');
+      });
+
+      // Show the selected section
+      const activeSection = document.getElementById(tabId);
+      if (activeSection) {
+        activeSection.classList.add('active');
+      }
+
+      // Activate the clicked button
+      event.currentTarget.classList.add('active');
+      
+      // Re-initialize mermaid if switching to loops or hybrid tab
+      if (tabId === 'loops' || tabId === 'hybrid') {
+        setTimeout(() => {
+          mermaid.init(undefined, ".mermaid");
+        }, 100);
+      }
+    }
+  </script>
+</body>
+</html>

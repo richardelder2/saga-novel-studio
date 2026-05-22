@@ -12,3 +12,13 @@ __pycache__/
 # IDE
 .vscode/
 .idea/
+
+# Environment credentials
+.env
+
+# Large/Compiled Publishing Files
+*.epub
+*.mp3
+*.csv
+epub_draft/
+
