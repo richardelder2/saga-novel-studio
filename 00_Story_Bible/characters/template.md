@@ -3,6 +3,12 @@
 **Role in Story:**
 (Protagonist, Antagonist, Mentor, Foil?)
 
+**Gender:**
+(Male / Female / Non-binary)
+
+**Voice Assignment:**
+(Select a voice from 00_Story_Bible/rules/voice_catalog.md, e.g., Fenrir, Aoede, Puck, Kore, Leda, Zubenelgenubi)
+
 **Physical Description:**
 - Age:
 - Height/Build:

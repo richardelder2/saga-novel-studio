@@ -374,13 +374,25 @@ def interactive_brainstorming(client, premise_path):
     print("\n👥 Extracting Main Characters to Story Bible (00_Story_Bible/characters/)...")
     char_prompt = (
         f"Based on the following brainstorming transcript, extract the 3 most important characters discussed. "
-        f"For each character, generate a structured profile containing: Name, Role (e.g. Protagonist, Antagonist, etc.), "
-        f"Description, Internal Secret Truth, Narrative Arc, and Voice Assignment. "
-        f"For Voice Assignment, pick exactly one from the following prebuilt voices based on character type and gender:\n"
-        f"- Fenrir (rich, deep male voice, great for male leads)\n"
-        f"- Aoede (clear, expressive female voice, great for female leads)\n"
-        f"- Puck (lighter male voice, great for supporting males)\n"
-        f"- Kore (lighter female voice, great for supporting females)\n\n"
+        f"For each character, generate a structured profile in clean markdown containing these fields:\n"
+        f"- Name (as the main header # Character Name)\n"
+        f"- **Role in Story**\n"
+        f"- **Gender** (pick exactly one of: Male, Female, Non-binary)\n"
+        f"- **Voice Assignment** (pick exactly one of the premium prebuilt voices listed below)\n"
+        f"- **Physical Description**\n"
+        f"- **Personality**\n"
+        f"- **Backstory**\n\n"
+        f"Recommended Prebuilt Voices for Voice Assignment:\n"
+        f"- Fenrir (rich, lower-mid male voice, great for male leads)\n"
+        f"- Aoede (clear, expressive mid female voice, great for female leads or narrators)\n"
+        f"- Puck (lighter, energetic mid male voice, great for supporting males/sidekicks)\n"
+        f"- Kore (confident, energetic mid-high female voice, great for active females/rebels)\n"
+        f"- Leda (composed, serious, professional female voice, great for intellectual/stern females)\n"
+        f"- Zubenelgenubi (very deep, commanding male voice, great for main villains/commanders)\n"
+        f"- Zephyr (bright, perky, upbeat female voice, great for companions/cheerful females)\n"
+        f"- Despina (smooth, warm, inviting female voice, great for kind/comforting females)\n"
+        f"- Autonoe (deep, mature, resonant male voice, great for wise mentors/older figures)\n"
+        f"- Achernar (friendly, engaging mid male voice, great for approachable males)\n\n"
         f"Format your response as a valid JSON object matching this structure exactly:\n"
         f"{{\n  \"characters\": [\n    {{\n      \"filename\": \"jax_steele.md\",\n      \"content\": \"full markdown content of the character profile here\"\n    }}\n  ]\n}}\n\n"
         f"Transcript:\n{transcript}"
@@ -411,7 +423,18 @@ def interactive_brainstorming(client, premise_path):
     except Exception as e:
         print(f"⚠️ Warning: Could not parse character extraction JSON: {e}")
         # Seeding a default protagonist profile
-        default_char = "# Jax Steele\n**Role**: Protagonist\n**Description**: Cybernetic detective.\n**Voice**: Fenrir"
+        default_char = (
+            "# Jax Steele\n\n"
+            "**Role in Story:** Protagonist\n\n"
+            "**Gender:** Male\n\n"
+            "**Voice Assignment:** Fenrir\n\n"
+            "**Physical Description:**\n"
+            "- Age: 34\n"
+            "- Height/Build: Tall, athletic build\n"
+            "- Distinguishing features: Cybernetic left arm, steel grey eyes\n\n"
+            "**Personality:** Cybernetic detective, cynical but operates under a strict moral code.\n\n"
+            "**Backstory:** Former corporate investigator who went rogue after uncovering dark secrets."
+        )
         write_file_content("00_Story_Bible/characters/jax_steele.md", default_char)
         print("  • Seeded default protagonist profile.")
         

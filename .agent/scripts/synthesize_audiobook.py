@@ -4,49 +4,124 @@ import csv
 import json
 import wave
 import argparse
+import re
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 
-# Prebuilt voices for gemini-3.1-flash-tts-preview
+# Available Gemini Native TTS prebuilt voices catalog
+ALL_VALID_VOICES = {
+    "Charon", "Fenrir", "Puck", "Autonoe", "Zubenelgenubi", "Achernar", "Enceladus",
+    "Aoede", "Leda", "Kore", "Zephyr", "Despina", "Achird"
+}
+
 VOICES = {
-    "narrator": "Charon",     # Warm, expressive narrator
-    "male_lead": "Fenrir",    # Rich, deep male voice
-    "female_lead": "Aoede",   # Clear, expressive female voice
-    "supporting_m": "Puck",   # Lighter male voice
-    "supporting_f": "Kore",   # Lighter female voice
-    "neutral": "Aoede"
+    "narrator": "Charon",
+    "neutral": "Aoede",
+    "fallback_m": "Fenrir",
+    "fallback_f": "Aoede"
 }
 
 def guess_gender_and_assign_voice(char_name, assigned_voices):
     if char_name == "Narrator":
         return VOICES["narrator"]
         
-    char_name_lower = char_name.lower()
-    
-    # 1. Read character profile for cues
     char_file = f"00_Story_Bible/characters/{char_name.replace(' ', '_').lower()}.md"
+    content = ""
     if os.path.exists(char_file):
         try:
             with open(char_file, "r", encoding="utf-8") as f:
-                content = f.read().lower()
-                if "female" in content or "woman" in content or "girl" in content or " she " in content:
-                    return VOICES["female_lead"]
-                if "male" in content or "man" in content or "boy" in content or " he " in content:
-                    return VOICES["male_lead"]
+                content = f.read()
         except Exception:
             pass
             
-    # 2. Heuristics based on name endings
-    if char_name_lower.endswith(("a", "ia", "y", "ie", "elle", "na")):
-        return VOICES["female_lead"]
+    # 1. Look for explicit Voice Assignment or Voice field in character profile
+    if content:
+        # Match lines like "**Voice Assignment:** Fenrir" or "**Voice:** Puck" or "Voice Assignment: Kore"
+        voice_match = re.search(r'(?:voice\s*assignment|voice)\s*\**\s*:\s*\**\s*([a-zA-Z0-9_-]+)', content, re.IGNORECASE)
+        if voice_match:
+            voice_candidate = voice_match.group(1).strip()
+            # Normalize and check if it matches one of our valid voices (case-insensitive check)
+            for v in ALL_VALID_VOICES:
+                if v.lower() == voice_candidate.lower():
+                    print(f"  • Found explicit voice assignment for '{char_name}': {v}")
+                    return v
+
+    # 2. Look for explicit Gender field in character profile
+    gender = None
+    if content:
+        # Match lines like "**Gender:** Female" or "Gender: Male"
+        gender_match = re.search(r'gender\s*\**\s*:\s*\**\s*([a-zA-Z0-9_-]+)', content, re.IGNORECASE)
+        if gender_match:
+            gender_candidate = gender_match.group(1).strip().lower()
+            if gender_candidate in ["female", "woman", "girl"]:
+                gender = "female"
+            elif gender_candidate in ["male", "man", "boy"]:
+                gender = "male"
+            print(f"  • Found explicit gender for '{char_name}': {gender}")
+
+    # 3. If no explicit gender found, use counts of pronouns/keywords in character profile
+    if not gender and content:
+        content_lower = content.lower()
         
-    # Standard voice balancing
-    m_count = sum(1 for v in assigned_voices.values() if v == VOICES["male_lead"])
-    f_count = sum(1 for v in assigned_voices.values() if v == VOICES["female_lead"])
+        # Count gendered pronouns
+        she_count = len(re.findall(r'\bshe\b|\bher\b|\bhers\b', content_lower))
+        he_count = len(re.findall(r'\bhe\b|\bhim\b|\bhis\b', content_lower))
+        
+        # Count explicit gender nouns
+        female_count = len(re.findall(r'\bfemale\b|\bwoman\b|\bgirl\b', content_lower))
+        male_count = len(re.findall(r'\bmale\b|\bman\b|\bboy\b', content_lower))
+        
+        f_score = she_count * 1.5 + female_count * 2.0
+        m_score = he_count * 1.5 + male_count * 2.0
+        
+        if f_score > m_score + 1.0:
+            gender = "female"
+        elif m_score > f_score + 1.0:
+            gender = "male"
+
+    # 4. If still no gender found, fall back to name ending heuristic
+    if not gender:
+        char_name_lower = char_name.lower()
+        if char_name_lower.endswith(("a", "ia", "y", "ie", "elle", "na")):
+            gender = "female"
+        else:
+            gender = "male"
+
+    # 5. Assign an appropriate voice based on gender and story role
+    # Check if this character is a lead (Protagonist/Antagonist)
+    is_lead = False
+    if content:
+        role_match = re.search(r'(?:role in story|role)\s*\**\s*:\s*\**\s*([a-zA-Z0-9_\s-]+)', content, re.IGNORECASE)
+        if role_match:
+            role_text = role_match.group(1).strip().lower()
+            if "protagonist" in role_text or "antagonist" in role_text or "lead" in role_text or "hero" in role_text:
+                is_lead = True
+
+    # Identify voices already assigned to avoid duplication and sound clash
+    assigned_voice_names = set(assigned_voices.values())
     
-    # Default to alternating lead voices if no cues found
-    return VOICES["female_lead"] if f_count <= m_count else VOICES["male_lead"]
+    if gender == "female":
+        if is_lead:
+            candidates = ["Aoede", "Leda", "Kore"]
+        else:
+            candidates = ["Kore", "Zephyr", "Despina", "Achird", "Leda"]
+        
+        # Pick the first unused voice in the candidate pool
+        for cand in candidates:
+            if cand not in assigned_voice_names:
+                return cand
+        return VOICES["fallback_f"]
+    else:
+        if is_lead:
+            candidates = ["Fenrir", "Zubenelgenubi", "Autonoe"]
+        else:
+            candidates = ["Puck", "Achernar", "Enceladus", "Autonoe", "Zubenelgenubi"]
+            
+        for cand in candidates:
+            if cand not in assigned_voice_names:
+                return cand
+        return VOICES["fallback_m"]
 
 def chunk_text(text, max_chars=4000):
     if len(text) <= max_chars:
@@ -146,7 +221,7 @@ def main():
             {"Character": "Narrator", "Text": "A voice echoed from the shadows, mechanical and smooth."}
         ]
         
-        assigned_voices = {"Narrator": VOICES["narrator"], "Jax Steele": VOICES["male_lead"]}
+        assigned_voices = {"Narrator": VOICES["narrator"], "Jax Steele": VOICES["fallback_m"]}
         pcm_chunks = []
         
         for idx, row in enumerate(test_rows):
