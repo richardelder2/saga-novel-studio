@@ -2,19 +2,20 @@ import os
 import sys
 import csv
 import json
-import base64
-import requests
+import wave
 import argparse
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
-# Define premium Google TTS voices
+# Prebuilt voices for gemini-3.1-flash-tts-preview
 VOICES = {
-    "narrator": "en-US-Studio-O",     # Ultra-premium, highly natural Studio voice
-    "male_lead": "en-US-Neural2-D",   # Clean, clear Neural2 male
-    "female_lead": "en-US-Neural2-F", # Expressive Neural2 female
-    "supporting_m": "en-US-Neural2-A",# Secondary male
-    "supporting_f": "en-US-Neural2-E",# Secondary female
-    "neutral": "en-US-Neural2-C"      # Neutral fallback
+    "narrator": "Charon",     # Warm, expressive narrator
+    "male_lead": "Fenrir",    # Rich, deep male voice
+    "female_lead": "Aoede",   # Clear, expressive female voice
+    "supporting_m": "Puck",   # Lighter male voice
+    "supporting_f": "Kore",   # Lighter female voice
+    "neutral": "Aoede"
 }
 
 def guess_gender_and_assign_voice(char_name, assigned_voices):
@@ -36,7 +37,7 @@ def guess_gender_and_assign_voice(char_name, assigned_voices):
         except Exception:
             pass
             
-    # 2. Heuristics based on common name endings or standard heuristics
+    # 2. Heuristics based on name endings
     if char_name_lower.endswith(("a", "ia", "y", "ie", "elle", "na")):
         return VOICES["female_lead"]
         
@@ -48,13 +49,11 @@ def guess_gender_and_assign_voice(char_name, assigned_voices):
     return VOICES["female_lead"] if f_count <= m_count else VOICES["male_lead"]
 
 def chunk_text(text, max_chars=4000):
-    # Splits long text blocks along sentence boundaries
     if len(text) <= max_chars:
         return [text]
         
     chunks = []
     current_chunk = ""
-    # Split by common sentence endings, keeping the punctuation
     sentences = []
     temp_sentence = ""
     for char in text:
@@ -78,43 +77,52 @@ def chunk_text(text, max_chars=4000):
         
     return chunks
 
-def synthesize_text_api(text, voice_name, api_key):
-    url = f"https://texttospeech.googleapis.com/v1/text:synthesize?key={api_key}"
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "input": {"text": text},
-        "voice": {
-            "languageCode": "en-US",
-            "name": voice_name
-        },
-        "audioConfig": {
-            "audioEncoding": "MP3",
-            "speakingRate": 1.0,
-            "pitch": 0.0
-        }
-    }
-    
+def synthesize_text_gemini(client, text, voice_name):
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
-        if response.status_code == 200:
-            res_json = response.json()
-            audio_data = base64.b64decode(res_json.get("audioContent", ""))
-            return audio_data
-        else:
-            print(f"⚠️ API Error (Code {response.status_code}): {response.text}")
-            return None
-    except Exception as e:
-        print(f"⚠️ Network error during synthesis: {e}")
+        response = client.models.generate_content(
+            model="gemini-3.1-flash-tts-preview",
+            contents=text,
+            config=types.GenerateContentConfig(
+                response_modalities=["audio"],
+                speech_config=types.SpeechConfig(
+                    voice_config=types.VoiceConfig(
+                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                            voice_name=voice_name
+                        )
+                    )
+                )
+            )
+        )
+        # Extract raw L16 PCM binary data
+        part = response.candidates[0].content.parts[0]
+        if part.inline_data and part.inline_data.data:
+            return part.inline_data.data
         return None
+    except Exception as e:
+        print(f"⚠️ Error during Gemini TTS synthesis: {e}")
+        return None
+
+def save_pcm_as_wav(pcm_data, output_file, sample_rate=24000, channels=1):
+    print(f"Wrapping {len(pcm_data)} raw PCM bytes in standard WAV header...")
+    try:
+        with wave.open(output_file, 'wb') as wav_file:
+            # Set params: (nchannels, sampwidth, framerate, nframes, comptype, compname)
+            # 1 channel, 16-bit (2 bytes), 24kHz sample rate
+            wav_file.setparams((channels, 2, sample_rate, len(pcm_data), 'NONE', 'not compressed'))
+            wav_file.writeframes(pcm_data)
+        return True
+    except Exception as e:
+        print(f"⚠️ Error saving WAV file: {e}")
+        return False
 
 def main():
     sys.stdout.reconfigure(encoding='utf-8')
-    parser = argparse.ArgumentParser(description="Synthesize novel script to multi-voice MP3 using Google Cloud TTS.")
+    parser = argparse.ArgumentParser(description="Synthesize novel script to multi-voice WAV using Gemini native TTS.")
     parser.add_argument("--test", action="store_true", help="Generate a quick 3-sentence multi-voice audio to verify setup.")
     args = parser.parse_args()
     
-    print("🎙️ COAUTHOR AUDIOBOOK SYNTHESIZER 🎙️")
-    print("---------------------------------")
+    print("🎙️ COAUTHOR NATIVE GEMINI AUDIOBOOK SYNTHESIZER 🎙️")
+    print("-----------------------------------------------")
     
     # Load environment
     load_dotenv()
@@ -124,12 +132,14 @@ def main():
         print("Please add your key to '.env' in the root workspace folder.")
         sys.exit(1)
         
+    client = genai.Client(api_key=api_key)
+    
     script_path = "04_Publishing/audiobook_script.csv"
-    output_path = "04_Publishing/audiobook.mp3"
+    output_path = "04_Publishing/audiobook.wav"
     
     # 1. Test Mode
     if args.test:
-        print("Running diagnostic multi-voice test synthesis...")
+        print("Running native Gemini multi-voice test synthesis...")
         test_rows = [
             {"Character": "Narrator", "Text": "Jax Steele adjusted his leather coat as rain beaded on his metal shoulder."},
             {"Character": "Jax Steele", "Text": "I don't care how much neon is lighting up this city, it still feels dark."},
@@ -137,23 +147,22 @@ def main():
         ]
         
         assigned_voices = {"Narrator": VOICES["narrator"], "Jax Steele": VOICES["male_lead"]}
-        audio_chunks = []
+        pcm_chunks = []
         
         for idx, row in enumerate(test_rows):
             speaker = row["Character"]
             text = row["Text"]
             voice = assigned_voices[speaker]
             print(f"-> Synthesizing test block {idx+1}: {speaker} using {voice}...")
-            audio_bytes = synthesize_text_api(text, voice, api_key)
+            audio_bytes = synthesize_text_gemini(client, text, voice)
             if audio_bytes:
-                audio_chunks.append(audio_bytes)
+                pcm_chunks.append(audio_bytes)
                 
-        if len(audio_chunks) == len(test_rows):
+        if len(pcm_chunks) == len(test_rows):
             os.makedirs("04_Publishing", exist_ok=True)
-            with open(output_path, "wb") as outfile:
-                for chunk in audio_chunks:
-                    outfile.write(chunk)
-            print(f"🎉 SUCCESS! Diagnostic multi-voice MP3 written to: {output_path}")
+            combined_pcm = b"".join(pcm_chunks)
+            if save_pcm_as_wav(combined_pcm, output_path):
+                print(f"🎉 SUCCESS! Diagnostic multi-voice WAV written to: {output_path}")
         else:
             print("❌ Failure: Could not synthesize all test blocks.")
         sys.exit(0)
@@ -186,7 +195,7 @@ def main():
         assigned_voices[char] = voice
         print(f"  • {char:<20} -> Voice: {voice}")
         
-    # 4. Group consecutive blocks by the same speaker (Narrator merge optimization)
+    # 4. Group consecutive blocks by the same speaker
     print("\n⚙️ Optimizing script structure (combining contiguous speaker blocks)...")
     optimized_rows = []
     current_speaker = None
@@ -217,35 +226,38 @@ def main():
     
     # 5. Synthesis Loop
     print(f"\n🎙️ Synthesizing audiobook to {output_path}...")
-    audio_file_assembled = 0
+    pcm_chunks = []
     failed_blocks = 0
     
-    with open(output_path, "wb") as outfile:
-        for idx, row in enumerate(optimized_rows, start=1):
-            speaker = row["Character"]
-            text = row["Text"]
-            voice = assigned_voices.get(speaker, VOICES["neutral"])
-            
-            # Chunk long blocks (prevents Google Cloud limit)
-            text_chunks = chunk_text(text)
-            
-            print(f"[{idx}/{len(optimized_rows)}] Synthesizing {speaker} ({len(text_chunks)} chunk(s))...")
-            
-            for c_idx, chunk in enumerate(text_chunks):
-                audio_bytes = synthesize_text_api(chunk, voice, api_key)
-                if audio_bytes:
-                    outfile.write(audio_bytes)
-                    audio_file_assembled += 1
-                else:
-                    print(f"  ⚠️ Warning: Failed to synthesize chunk {c_idx+1} for speaker '{speaker}'.")
-                    failed_blocks += 1
-                    
-    print("\n------------------------------------------------")
-    if failed_blocks == 0:
-        print(f"🎉 SUCCESS! Entire multi-voice audiobook synthesized successfully!")
-        print(f"Output File: {output_path}")
-    else:
-        print(f"⚠️ Finished with {failed_blocks} errors. Audiobook audio is incomplete.")
+    for idx, row in enumerate(optimized_rows, start=1):
+        speaker = row["Character"]
+        text = row["Text"]
+        voice = assigned_voices.get(speaker, VOICES["neutral"])
         
+        # Chunk long blocks
+        text_chunks = chunk_text(text)
+        
+        print(f"[{idx}/{len(optimized_rows)}] Synthesizing {speaker} ({len(text_chunks)} chunk(s))...")
+        
+        for c_idx, chunk in enumerate(text_chunks):
+            audio_bytes = synthesize_text_gemini(client, chunk, voice)
+            if audio_bytes:
+                pcm_chunks.append(audio_bytes)
+            else:
+                print(f"  ⚠️ Warning: Failed to synthesize chunk {c_idx+1} for speaker '{speaker}'.")
+                failed_blocks += 1
+                
+    # 6. Assemble WAV
+    if pcm_chunks:
+        combined_pcm = b"".join(pcm_chunks)
+        if save_pcm_as_wav(combined_pcm, output_path):
+            print("\n------------------------------------------------")
+            print(f"🎉 SUCCESS! Entire multi-voice audiobook synthesized successfully!")
+            print(f"Output File: {output_path}")
+        else:
+            print("❌ Failure during WAV creation.")
+    else:
+        print("\n❌ Error: No audio segments were successfully synthesized.")
+
 if __name__ == "__main__":
     main()

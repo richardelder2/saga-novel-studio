@@ -40,7 +40,6 @@ def get_system_instruction(persona_filename):
     path = os.path.join(".agent", persona_filename)
     content = read_file_content(path)
     if not content:
-        # Fallback default instructions if missing
         return f"You are a helpful creative writing assistant acting as {persona_filename}."
     return content
 
@@ -58,6 +57,366 @@ def call_gemini(client, prompt, system_instruction):
     except Exception as e:
         print(f"❌ Gemini API Call Error: {e}")
         return ""
+
+def generate_chapter_illustration(client, chapter_num, beats, dry_run):
+    output_dir = "04_Publishing/illustrations"
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, f"chapter_{chapter_num}_illustration.png")
+    
+    print(f"🖼️ Generating chapter illustration for Chapter {chapter_num} via Google Imagen 4.0...")
+    prompt = (
+        f"A beautiful cinematic fantasy/sci-fi illustration depicting the following story beats: "
+        f"\"{beats}\". Stylized, artistic composition, rich deep atmospheric lighting, dramatic color palette."
+    )
+    
+    if dry_run:
+        print(f"[DRY-RUN] Would generate chapter illustration for chapter {chapter_num}.")
+        write_file_content(output_path, "MOCK ILLUSTRATION DATA")
+        return
+        
+    try:
+        response = client.models.generate_images(
+            model='imagen-4.0-generate-001',
+            prompt=prompt,
+            config=types.GenerateImagesConfig(
+                number_of_images=1,
+                aspect_ratio="1:1",
+                output_mime_type="image/png"
+            )
+        )
+        if response.generated_images:
+            from io import BytesIO
+            try:
+                from PIL import Image
+                img_data = response.generated_images[0].image.image_bytes
+                image = Image.open(BytesIO(img_data))
+                image.save(output_path)
+                print(f"✅ Illustration successfully saved at: {output_path}")
+            except ImportError:
+                img_data = response.generated_images[0].image.image_bytes
+                with open(output_path, "wb") as f:
+                    f.write(img_data)
+                print(f"✅ Illustration saved as raw PNG at: {output_path}")
+    except Exception as e:
+        print(f"⚠️ Warning: Could not generate illustration: {e}")
+
+def build_landing_page(manifest):
+    print("\n🌐 Compiling promotional landing page index.html...")
+    title = manifest.get("title", "Untitled Novel")
+    genre = manifest.get("genre", "General Fiction")
+    synopsis = read_file_content("01_Planning/premise.md")
+    
+    # Strip markdown headers or simple cleanup
+    synopsis_html = synopsis.replace("# Story Premise\n\n", "").replace("\n\n", "</p><p>").replace("\n", "<br/>")
+    if not synopsis_html.strip():
+        synopsis_html = "A high-concept, gripping novel of suspense and discovery."
+        
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{title} - Promotional Landing Page</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    body {{
+      font-family: 'Outfit', sans-serif;
+      background: radial-gradient(circle at top right, #1e293b, #0f172a);
+      color: #f1f5f9;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }}
+    .landing-container {{
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 40px;
+      background: rgba(30, 41, 59, 0.45);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      display: flex;
+      gap: 40px;
+      align-items: center;
+    }}
+    .cover-wrapper {{
+      flex: 1;
+      max-width: 320px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: transform 0.3s;
+    }}
+    .cover-wrapper:hover {{
+      transform: translateY(-8px);
+    }}
+    .cover-wrapper img {{
+      width: 100%;
+      display: block;
+    }}
+    .details-wrapper {{
+      flex: 1.5;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }}
+    .title {{
+      font-family: 'Cinzel', serif;
+      font-size: 2.8rem;
+      margin: 0;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }}
+    .genre-tag {{
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(14, 116, 144, 0.3);
+      border: 1px solid rgba(14, 116, 144, 0.5);
+      border-radius: 99px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #38bdf8;
+      width: fit-content;
+    }}
+    .synopsis {{
+      line-height: 1.6;
+      color: #cbd5e1;
+      font-size: 1.05rem;
+    }}
+    .audiobook-player {{
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }}
+    .player-title {{
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }}
+    .audiobook-player audio {{
+      width: 100%;
+    }}
+    .button-group {{
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+    }}
+    .btn {{
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      text-align: center;
+      flex: 1;
+    }}
+    .btn-primary {{
+      background: linear-gradient(135deg, #0284c7, #4f46e5);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+    }}
+    .btn-primary:hover {{
+      background: linear-gradient(135deg, #0369a1, #4338ca);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+    }}
+    .btn-secondary {{
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #f1f5f9;
+    }}
+    .btn-secondary:hover {{
+      background: rgba(255,255,255,0.1);
+    }}
+  </style>
+</head>
+<body>
+  <div class="landing-container">
+    <div class="cover-wrapper">
+      <img src="covers/cover_concept.png" onerror="this.src='https://placehold.co/600x800/1e293b/f1f5f9?text={title.replace(' ', '+')}'" alt="Book Cover">
+    </div>
+    <div class="details-wrapper">
+      <div class="genre-tag">{genre}</div>
+      <h1 class="title">{title}</h1>
+      <div class="synopsis">
+        <p>{synopsis_html}</p>
+      </div>
+      <div class="audiobook-player">
+        <div class="player-title">🔊 Listen to the Audiobook</div>
+        <audio controls src="audiobook.wav"></audio>
+      </div>
+      <div class="button-group">
+        <a href="manuscript.epub" class="btn btn-primary">📖 Download eBook (.ePUB)</a>
+        <a href="typeset_manuscript.html" class="btn btn-secondary" target="_blank">📄 Open Print Typeset</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+"""
+    write_file_content("04_Publishing/index.html", html_content)
+    print("🎉 Landing Page generated successfully at 04_Publishing/index.html")
+
+def interactive_brainstorming(client, premise_path):
+    print("\n✨ COAUTHOR YOLO MODE: FOUNDATION SESSION ✨")
+    print("---------------------------------------------")
+    print("Welcome! I am your Orchestrator & Creative Consultant.")
+    print("Let's brainstorm your novel together. Type your initial ideas, themes, characters, or settings.")
+    print("Type 'done' or 'finish' when you're happy and want to compile the complete Story Bible!\n")
+    
+    # Check if stdin is interactive
+    if not sys.stdin.isatty():
+        print("⚠️ Non-interactive environment detected. Seeding basic default premise...")
+        default_premise = "# Story Premise\n\nA cybernetic detective in a rain-slicked neon metropolis searches for a corporate heiress, uncovering digital transcendence secrets."
+        write_file_content(premise_path, default_premise)
+        return default_premise
+
+    chat_history = []
+    system_inst = (
+        "You are the Orchestrator, an expert creative novelist, world-builder, and structural consultant. "
+        "Engage in a friendly, conversational brainstorming session with the user. "
+        "Ask targeted, creative questions one at a time. Help flesh out their ideas, "
+        "propose rich plot hooks, suggest complex characters, and suggest world laws. "
+        "Keep your responses concise, punchy, and highly creative. "
+        "Focus on building a cohesive story theme, premise, setting, and main character concepts."
+    )
+    
+    while True:
+        try:
+            user_input = input("\nYou: ").strip()
+            if not user_input:
+                continue
+            if user_input.lower() in ['done', 'finish', '/done', '/finish']:
+                print("\n✨ Brainstorming session completed! Consolidating Story Bible...")
+                break
+                
+            chat_history.append({"role": "user", "parts": [user_input]})
+            
+            # Format history for API call
+            contents = []
+            for msg in chat_history:
+                contents.append(types.Content(
+                    role=msg["role"],
+                    parts=[types.Part.from_text(text=p) for p in msg["parts"]]
+                ))
+            
+            print("🤖 Orchestrator thinking...")
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_inst,
+                    temperature=0.8
+                )
+            )
+            
+            reply = response.text
+            print(f"\nOrchestrator: {reply}")
+            chat_history.append({"role": "model", "parts": [reply]})
+            
+        except (KeyboardInterrupt, EOFError):
+            print("\nExiting brainstorming session. Seeding default premise...")
+            break
+            
+    # Now generate the Story Bible assets from the transcript
+    transcript = ""
+    for msg in chat_history:
+        role_label = "User" if msg["role"] == "user" else "Orchestrator"
+        text_content = "\n".join(msg["parts"])
+        transcript += f"{role_label}: {text_content}\n\n"
+        
+    print("\n📝 Compiling Story Premise (01_Planning/premise.md)...")
+    premise_prompt = (
+        f"Based on the following brainstorming transcript, generate a structured, professional story premise. "
+        f"Output in clean markdown with sections: Title, Genre, Logline, Core Theme, Narrative Arc, and Synopsis.\n\n"
+        f"Transcript:\n{transcript}"
+    )
+    premise_text = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=premise_prompt,
+        config=types.GenerateContentConfig(
+            system_instruction="You are a professional book outliner. Generate a structured premise document."
+        )
+    ).text
+    write_file_content(premise_path, premise_text)
+    print("✅ Story Premise written successfully.")
+    
+    print("\n🌍 Compiling World Building Rules (00_Story_Bible/world_rules.md)...")
+    world_prompt = (
+        f"Based on the following brainstorming transcript, generate a detailed world setting and laws document. "
+        f"Output in clean markdown with sections: Setting Overview, Key Locations, Magic or Technological Laws, and Narrative Constraints.\n\n"
+        f"Transcript:\n{transcript}"
+    )
+    world_text = client.models.generate_content(
+        model='gemini-2.5-flash',
+        contents=world_prompt,
+        config=types.GenerateContentConfig(
+            system_instruction="You are a premium world-builder. Write a structured world guide."
+        )
+    ).text
+    write_file_content("00_Story_Bible/world_rules.md", world_text)
+    print("✅ World Setting Rules written successfully.")
+    
+    print("\n👥 Extracting Main Characters to Story Bible (00_Story_Bible/characters/)...")
+    char_prompt = (
+        f"Based on the following brainstorming transcript, extract the 3 most important characters discussed. "
+        f"For each character, generate a structured profile containing: Name, Role (e.g. Protagonist, Antagonist, etc.), "
+        f"Description, Internal Secret Truth, Narrative Arc, and Voice Assignment. "
+        f"For Voice Assignment, pick exactly one from the following prebuilt voices based on character type and gender:\n"
+        f"- Fenrir (rich, deep male voice, great for male leads)\n"
+        f"- Aoede (clear, expressive female voice, great for female leads)\n"
+        f"- Puck (lighter male voice, great for supporting males)\n"
+        f"- Kore (lighter female voice, great for supporting females)\n\n"
+        f"Format your response as a valid JSON object matching this structure exactly:\n"
+        f"{{\n  \"characters\": [\n    {{\n      \"filename\": \"jax_steele.md\",\n      \"content\": \"full markdown content of the character profile here\"\n    }}\n  ]\n}}\n\n"
+        f"Transcript:\n{transcript}"
+    )
+    
+    try:
+        char_response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=char_prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                system_instruction="You are a professional character developer. Generate character profile markdown content in a structured JSON payload."
+            )
+        ).text
+        
+        char_data = json.loads(char_response)
+        os.makedirs("00_Story_Bible/characters", exist_ok=True)
+        for char_info in char_data.get("characters", []):
+            filename = char_info.get("filename")
+            content = char_info.get("content")
+            if filename and content:
+                # Sanitize filename
+                filename = re.sub(r'[^a-zA-Z0-9_\.-]', '', filename)
+                char_path = os.path.join("00_Story_Bible/characters", filename)
+                write_file_content(char_path, content)
+                print(f"  • Created character profile: {filename}")
+                
+    except Exception as e:
+        print(f"⚠️ Warning: Could not parse character extraction JSON: {e}")
+        # Seeding a default protagonist profile
+        default_char = "# Jax Steele\n**Role**: Protagonist\n**Description**: Cybernetic detective.\n**Voice**: Fenrir"
+        write_file_content("00_Story_Bible/characters/jax_steele.md", default_char)
+        print("  • Seeded default protagonist profile.")
+        
+    print("\n🎉 STORY BIBLE FOUNDATION FULLY ESTABLISHED!")
+    return premise_text
 
 def main():
     sys.stdout.reconfigure(encoding='utf-8')
@@ -78,9 +437,7 @@ def main():
         print("❌ Error: GEMINI_API_KEY is not configured in '.env'.")
         sys.exit(1)
 
-    client = None
-    if not args.dry_run:
-        client = genai.Client(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 
     # 1. Read Project Manifest
     manifest_path = "00_Story_Bible/project_manifest.json"
@@ -110,10 +467,9 @@ def main():
         outline_path = "01_Planning/outline.md"
         
         premise = read_file_content(premise_path)
-        if not premise:
-            print("⚠️ Premise file is empty! Seeding basic Cyberpunk Premise...")
-            premise = "# Story Premise\n\nA cybernetic detective in a rain-slicked neon metropolis searches for a corporate heiress, uncovering digital transcendence secrets."
-            write_file_content(premise_path, premise)
+        if not premise or premise.strip() == "# Story Premise" or len(premise.strip()) < 20:
+            # Brainstorm interactive session
+            premise = interactive_brainstorming(client, premise_path)
             
         print("Generating Outline autonomously via the Architect...")
         if args.dry_run:
@@ -206,42 +562,72 @@ def main():
                         print("❌ Beats generation failed.")
                         break
 
-            # Scribe Drafting Loop
-            print(f" Scribe drafting Chapter {ch_str}...")
-            if args.dry_run:
-                print(f"[DRY-RUN] Scribe writes draft for Chapter {ch_str}.")
-                draft = f"# Chapter {next_ch}\n\nJax Steele adjusted his leather coat, rain beaded on his synthetic shoulder. The synth-bass rattled his chest-plate as he entered the neon club. The bartender stared..."
-                write_file_content(draft_file, draft)
-            else:
-                system_inst = get_system_instruction("scribe_instructions.md")
-                prompt = f"Draft chapter {next_ch} based on these scene beats. Maintain deep POV, active voice, and avoid clichés.\n\nBeats:\n{beats}"
-                draft = call_gemini(client, prompt, system_inst)
-                if draft:
-                    write_file_content(draft_file, draft)
+            # Self-Correction Retry Loop for Drafting
+            best_draft = ""
+            best_score = 0.0
+            best_critique = ""
+            max_retries = 3
+            
+            for attempt in range(1, max_retries + 1):
+                print(f" Scribe drafting Chapter {ch_str} (Attempt {attempt}/{max_retries})...")
+                if attempt > 1:
+                    prompt = (
+                        f"You are revising Chapter {next_ch} based on a critique. Here is the previous draft:\n\n"
+                        f"{draft}\n\nHere is the Evaluator's critique outlining the issues and score:\n\n"
+                        f"{critique}\n\nPlease revise the chapter to fix the issues, enhance depth, expand prose quality, and eliminate clichés. "
+                        f"Maintain the scene beats:\n\n{beats}"
+                    )
                 else:
-                    print("❌ Drafting failed.")
+                    prompt = f"Draft chapter {next_ch} based on these scene beats. Maintain deep POV, active voice, and avoid clichés.\n\nBeats:\n{beats}"
+                
+                if args.dry_run:
+                    draft = f"# Chapter {next_ch}\n\nJax Steele adjusted his leather coat, rain beaded on his synthetic shoulder. The synth-bass rattled his chest-plate as he entered the neon club. The bartender stared..."
+                    draft_score = 8.0
+                    critique = "# Critique\nScore: 8.0/10\nPASS"
+                else:
+                    system_inst = get_system_instruction("scribe_instructions.md")
+                    draft = call_gemini(client, prompt, system_inst)
+                    if not draft:
+                        print("❌ Scribe failed to draft chapter.")
+                        break
+                        
+                print(f" Evaluator auditing Chapter {ch_str} prose (Attempt {attempt}/{max_retries})...")
+                if args.dry_run:
+                    draft_score = 8.2
+                    critique = "# Critique\nScore: 8.2/10\nPASS"
+                else:
+                    system_inst = get_system_instruction("evaluator_instructions.md")
+                    eval_prompt = f"Evaluate the draft chapter prose against Story Grid rules and check for slop or clichés. Provide scorecard.\n\nDraft:\n{draft}"
+                    critique = call_gemini(client, eval_prompt, system_inst)
+                    if critique:
+                        score_match = re.search(r'Score:\s*(\d+\.\d+)', critique)
+                        if score_match:
+                            draft_score = float(score_match.group(1))
+                        else:
+                            score_match_int = re.search(r'Score:\s*(\d+)', critique)
+                            draft_score = float(score_match_int.group(1)) if score_match_int else 7.0
+                    else:
+                        draft_score = 6.0
+                        critique = "Could not evaluate."
+                
+                print(f"  Attempt {attempt} Score: {draft_score}/10")
+                
+                if draft_score > best_score:
+                    best_score = draft_score
+                    best_draft = draft
+                    best_critique = critique
+                
+                if draft_score >= 7.5:
+                    print(f"🎉 Prose audit PASSED with a score of {draft_score}/10!")
                     break
-
-            # Evaluator Audit
-            print(f" Evaluator auditing Chapter {ch_str} prose...")
-            draft_score = 7.0
-            if args.dry_run:
-                print(f"[DRY-RUN] Evaluator scores Chapter {ch_str}: {draft_score}/10 (PASS)")
-                critique = f"# Critique Chapter {ch_str}\n\n* Score: {draft_score}/10\n* Status: PASS\n* Cliches: None found."
-                write_file_content(critique_file, critique)
-            else:
-                system_inst = get_system_instruction("evaluator_instructions.md")
-                prompt = f"Evaluate the draft chapter prose against Story Grid rules and check for slop or clichés. Provide scorecard.\n\nDraft:\n{draft}"
-                critique = call_gemini(client, prompt, system_inst)
-                if critique:
-                    write_file_content(critique_file, critique)
-                    # Parse score from critique text if available
-                    score_match = re.search(r'Score:\s*(\d+\.\d+)', critique)
-                    if score_match:
-                        draft_score = float(score_match.group(1))
-                    print(f"✅ Evaluator scored draft: {draft_score}/10")
                 else:
-                    print("❌ Evaluator check failed.")
+                    print(f"⚠️ Prose score {draft_score}/10 is below the 7.5 quality threshold. Retrying...")
+            
+            draft = best_draft
+            critique = best_critique
+            draft_score = best_score
+            write_file_content(draft_file, draft)
+            write_file_content(critique_file, critique)
 
             # Deep Editor Developmental Edit
             print(f" Deep Editor developmental editing Chapter {ch_str}...")
@@ -257,13 +643,62 @@ def main():
                     write_file_content(draft_file, polished_draft)
                     print(f"✅ Deep Editor developmental edit completed.")
                 else:
+                    polished_draft = draft
                     print("⚠️ Deep Editor failed. Keeping original draft.")
 
+            # Lore Keeper Continuous Bible Update
+            print(f" Lore Keeper updating the Story Bible...")
+            if args.dry_run:
+                print("[DRY-RUN] Lore Keeper would update character profiles.")
+            else:
+                system_inst = get_system_instruction("lore_keeper_instructions.md")
+                char_files = glob.glob("00_Story_Bible/characters/*.md")
+                char_summaries = []
+                for cf in char_files:
+                    char_summaries.append(f"--- CHARACTER: {os.path.basename(cf)} ---\n{read_file_content(cf)}")
+                characters_context = "\n\n".join(char_summaries)
+                
+                lore_prompt = (
+                    f"You have just finished Chapter {next_ch}. Below is the final polished text of the chapter:\n\n"
+                    f"{polished_draft}\n\nHere are the current character files in the Story Bible:\n\n"
+                    f"{characters_context}\n\n"
+                    f"Please review the chapter for any character development, relationship changes, new secrets revealed, or settings introduced. "
+                    f"For each relevant character file, provide an updated markdown profile. Return a JSON structure matching exactly:\n"
+                    f"{{\n  \"characters\": [\n    {{\"filename\": \"character_file_name.md\", \"content\": \"full updated markdown content here\"}}\n  ]\n}}"
+                )
+                
+                lore_updates = call_gemini(client, lore_prompt, system_inst)
+                if lore_updates:
+                    try:
+                        json_str = lore_updates.strip()
+                        if json_str.startswith("```"):
+                            json_str = re.sub(r'^```[a-zA-Z]*\n', '', json_str)
+                            json_str = re.sub(r'\n```$', '', json_str)
+                        
+                        data = json.loads(json_str)
+                        for char_data in data.get("characters", []):
+                            filename = char_data.get("filename")
+                            content = char_data.get("content")
+                            if filename and content:
+                                # Ensure only target filenames
+                                filename = os.path.basename(filename)
+                                char_path = os.path.join("00_Story_Bible/characters", filename)
+                                write_file_content(char_path, content)
+                                print(f"  • Updated character file: {filename}")
+                    except Exception as e:
+                        print(f"  ⚠️ Warning: Could not parse Lore Keeper update JSON: {e}")
+
+            # Auto-Illustration Generation (Imagen 4.0)
+            generate_chapter_illustration(client, ch_str, beats, args.dry_run)
+
             # Git Auto Commit
-            print(" Committing chapter autonomously to Git...")
-            run_git_command(["git", "add", "."])
-            run_git_command(["git", "commit", "-m", f"YOLO: Completed Chapter {ch_str} (Score: {draft_score})"])
-            print("✅ Git commit created.")
+            if not args.dry_run:
+                print(" Committing chapter autonomously to Git...")
+                run_git_command(["git", "add", "."])
+                run_git_command(["git", "commit", "-m", f"YOLO: Completed Chapter {ch_str} (Score: {draft_score})"])
+                print("✅ Git commit created.")
+            else:
+                print(" [DRY-RUN] Would commit chapter autonomously to Git.")
 
             # Update Manifest
             manifest["status"]["current_chapter"] = next_ch
@@ -285,8 +720,77 @@ def main():
             next_ch += 1
             chapters_drafted += 1
             
-        print("\n🎉 YOLO session drafting complete.")
-        print("To compile final publishing formats, run the /publish-manuscript workflow!")
+        print("\n🎉 Autonomous drafting phase complete.")
+        
+        # ==================== PHASE 3: PUBLISHING (YOLO) ====================
+        print("\n--- PHASE 3: AUTONOMOUS PUBLISHING LOOP ---")
+        
+        # 1. Typeset HTML
+        print("🎨 Typesetting book layout...")
+        if args.dry_run:
+            print("[DRY-RUN] Would run typeset_book.py.")
+        else:
+            try:
+                subprocess.run([sys.executable, ".agent/scripts/typeset_book.py"], check=True)
+                print("✅ Book typesetting complete.")
+            except Exception as e:
+                print(f"⚠️ Warning: Typesetting failed: {e}")
+                
+        # 2. Package ePUB
+        print("📦 Compiling ePUB container...")
+        if args.dry_run:
+            print("[DRY-RUN] Would run compile_epub.py.")
+        else:
+            try:
+                subprocess.run([sys.executable, ".agent/scripts/compile_epub.py"], check=True)
+                print("✅ ePUB compilation complete.")
+            except Exception as e:
+                print(f"⚠️ Warning: ePUB packaging failed: {e}")
+                
+        # 3. Extract Dialogue Audiobook Script
+        print("📝 Parsing audiobook dialogue map...")
+        if args.dry_run:
+            print("[DRY-RUN] Would run parse_audiobook.py.")
+        else:
+            try:
+                subprocess.run([sys.executable, ".agent/scripts/parse_audiobook.py"], check=True)
+                print("✅ Audiobook dialogue parsed.")
+            except Exception as e:
+                print(f"⚠️ Warning: Dialogue parser failed: {e}")
+                
+        # 4. Generate Book Cover Concept (Imagen 4.0)
+        print("🖼️ Generating book cover concept...")
+        if args.dry_run:
+            print("[DRY-RUN] Would run generate_cover_api.py.")
+        else:
+            try:
+                subprocess.run([sys.executable, ".agent/scripts/generate_cover_api.py"], check=True)
+                print("✅ Cover concept generated.")
+            except Exception as e:
+                print(f"⚠️ Warning: Cover generation failed: {e}")
+                
+        # 5. Synthesize Audiobook WAV (Gemini TTS)
+        print("🎙️ Synthesizing multi-voice WAV audiobook...")
+        if args.dry_run:
+            print("[DRY-RUN] Would run synthesize_audiobook.py.")
+        else:
+            try:
+                subprocess.run([sys.executable, ".agent/scripts/synthesize_audiobook.py"], check=True)
+                print("✅ Audiobook WAV synthesized.")
+            except Exception as e:
+                print(f"⚠️ Warning: Audiobook synthesis failed: {e}")
+                
+        # 6. Build Landing Page
+        build_landing_page(manifest)
+        
+        # Git Auto Commit Publishing Assets
+        if not args.dry_run:
+            print(" Committing compiled publishing assets autonomously to Git...")
+            run_git_command(["git", "add", "."])
+            run_git_command(["git", "commit", "-m", "YOLO: Compiled print typeset, ePUB, Imagen cover concept, TTS audiobook, and promotional landing page"])
+            print("✅ Git commit created.")
+            
+        print("\n🎉 SUCCESS! COAUTHOR YOLO RUN FULLY COMPLETED!")
 
 if __name__ == "__main__":
     main()

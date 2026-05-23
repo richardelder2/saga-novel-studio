@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CoAuthor Master Template - Promotional Landing Page</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: radial-gradient(circle at top right, #1e293b, #0f172a);
+      color: #f1f5f9;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .landing-container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 40px;
+      background: rgba(30, 41, 59, 0.45);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      display: flex;
+      gap: 40px;
+      align-items: center;
+    }
+    .cover-wrapper {
+      flex: 1;
+      max-width: 320px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: transform 0.3s;
+    }
+    .cover-wrapper:hover {
+      transform: translateY(-8px);
+    }
+    .cover-wrapper img {
+      width: 100%;
+      display: block;
+    }
+    .details-wrapper {
+      flex: 1.5;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .title {
+      font-family: 'Cinzel', serif;
+      font-size: 2.8rem;
+      margin: 0;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .genre-tag {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(14, 116, 144, 0.3);
+      border: 1px solid rgba(14, 116, 144, 0.5);
+      border-radius: 99px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #38bdf8;
+      width: fit-content;
+    }
+    .synopsis {
+      line-height: 1.6;
+      color: #cbd5e1;
+      font-size: 1.05rem;
+    }
+    .audiobook-player {
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .player-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+    .audiobook-player audio {
+      width: 100%;
+    }
+    .button-group {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .btn {
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      text-align: center;
+      flex: 1;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #4f46e5);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #0369a1, #4338ca);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+    }
+    .btn-secondary {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #f1f5f9;
+    }
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="landing-container">
+    <div class="cover-wrapper">
+      <img src="covers/cover_concept.png" onerror="this.src='https://placehold.co/600x800/1e293b/f1f5f9?text=CoAuthor+Master+Template'" alt="Book Cover">
+    </div>
+    <div class="details-wrapper">
+      <div class="genre-tag">Fiction Framework</div>
+      <h1 class="title">CoAuthor Master Template</h1>
+      <div class="synopsis">
+        <p>**Working Title:** [Title]</p><p>**Genre:** [Genre]</p><p>**Logline:**<br/>(A one-sentence summary of the story. Who is the protagonist, what do they want, and what stands in their way?)</p><p>**Brain Dump:**<br/>(Write anything and everything about your idea here. Fragments, scenes, dialogue snippets, themes, etc.)<br/></p>
+      </div>
+      <div class="audiobook-player">
+        <div class="player-title">🔊 Listen to the Audiobook</div>
+        <audio controls src="audiobook.wav"></audio>
+      </div>
+      <div class="button-group">
+        <a href="manuscript.epub" class="btn btn-primary">📖 Download eBook (.ePUB)</a>
+        <a href="typeset_manuscript.html" class="btn btn-secondary" target="_blank">📄 Open Print Typeset</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

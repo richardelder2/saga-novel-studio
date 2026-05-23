@@ -5,13 +5,13 @@
   "created_at": "2026-05-22",
   "status": {
     "active_phase": "Phase 2: Drafting",
-    "current_chapter": 0,
+    "current_chapter": 2,
     "total_chapters": 0,
-    "word_count": 0
+    "word_count": 68
   },
   "latest_scores": {
     "foundation_score": 8.2,
-    "drafting_score": null,
+    "drafting_score": 8.2,
     "editorial_score": null
   },
   "mode": "yolo",

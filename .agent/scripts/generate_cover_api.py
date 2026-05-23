@@ -53,7 +53,7 @@ def load_project_metadata():
 
 def main():
     sys.stdout.reconfigure(encoding='utf-8')
-    parser = argparse.ArgumentParser(description="Generate a book cover using Google Imagen 3.0.")
+    parser = argparse.ArgumentParser(description="Generate a book cover using Google Imagen 4.0.")
     parser.add_argument("--prompt", type=str, help="Override the generated prompt with a custom one.")
     parser.add_argument("--test", action="store_true", help="Generate a quick test pattern to verify credentials.")
     args = parser.parse_args()
@@ -88,15 +88,15 @@ def main():
             f"minimalist and award-winning graphic design style. No raw text on the cover to allow clean layout."
         )
         
-    print(f"\n🚀 Dispatching prompt to Google Imagen 3.0:\n\"\"{prompt}\"\"\n")
+    print(f"\n🚀 Dispatching prompt to Google Imagen 4.0:\n\"\"{prompt}\"\"\n")
     
     try:
         # Initialize GenAI client
         client = genai.Client(api_key=api_key)
         
-        # Call Imagen 3.0
+        # Call Imagen 4.0 (Which is supported by your key)
         response = client.models.generate_images(
-            model='imagen-3.0-generate-002',
+            model='imagen-4.0-generate-001',
             prompt=prompt,
             config=types.GenerateImagesConfig(
                 number_of_images=1,
