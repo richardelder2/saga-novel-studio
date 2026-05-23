@@ -10,28 +10,40 @@ import argparse
 import agent_core
 
 def locate_registry(workspace_path):
-    paths = [
-        # Script-relative central folder (always reliable for script origin)
-        os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "projects_registry.json")),
-        # Sibling CoAuthor
-        os.path.abspath(os.path.join(os.path.dirname(workspace_path), "CoAuthor", ".agent", "projects_registry.json")),
-        # Parent
-        os.path.abspath(os.path.join(os.path.dirname(workspace_path), "projects_registry.json")),
-        # Local
-        os.path.abspath(os.path.join(workspace_path, ".agent", "projects_registry.json")),
-    ]
-    for p in paths:
-        if os.path.exists(p):
-            return p
-    # Default fallback relative to script
-    script_fallback = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "projects_registry.json"))
-    if os.path.exists(os.path.dirname(script_fallback)):
-        return script_fallback
-    # Default to sibling CoAuthor if it exists, otherwise local
-    sibling_coauthor_dir = os.path.abspath(os.path.join(os.path.dirname(workspace_path), "CoAuthor", ".agent"))
-    if os.path.isdir(sibling_coauthor_dir):
-        return os.path.join(sibling_coauthor_dir, "projects_registry.json")
-    return os.path.join(workspace_path, ".agent", "projects_registry.json")
+    # Standard home configuration directory
+    home_dir = os.path.expanduser("~")
+    config_dir = os.path.join(home_dir, ".config", "saga")
+    registry_path = os.path.join(config_dir, "projects_registry.json")
+    
+    # Ensure directory exists dynamically
+    try:
+        os.makedirs(config_dir, exist_ok=True)
+    except Exception:
+        pass
+        
+    # If the file does not exist, let's check for any legacy local registry file to migrate it!
+    if not os.path.exists(registry_path):
+        legacy_paths = [
+            os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "projects_registry.json")),
+            os.path.abspath(os.path.join(os.path.dirname(workspace_path), "CoAuthor", ".agent", "projects_registry.json")),
+            os.path.abspath(os.path.join(os.path.dirname(workspace_path), "projects_registry.json")),
+            os.path.abspath(os.path.join(workspace_path, ".agent", "projects_registry.json")),
+        ]
+        for p in legacy_paths:
+            if os.path.exists(p) and p != registry_path:
+                try:
+                    import shutil
+                    shutil.copy(p, registry_path)
+                    print(f"📊 SAGA: Migrated legacy registry database to standard user profile cache: {registry_path}")
+                    break
+                except Exception:
+                    pass
+                    
+    # Fallback to local workspace if we are completely unable to access home dir
+    if not os.path.exists(os.path.dirname(registry_path)):
+        return os.path.join(workspace_path, ".agent", "projects_registry.json")
+        
+    return registry_path
 
 def load_registry(registry_path):
     content = agent_core.read_file_content(registry_path)
