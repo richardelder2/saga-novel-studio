@@ -1,0 +1,9 @@
+README.md
+pyproject.toml
+saga_cli.py
+setup.py
+saga_cli.egg-info/PKG-INFO
+saga_cli.egg-info/SOURCES.txt
+saga_cli.egg-info/dependency_links.txt
+saga_cli.egg-info/entry_points.txt
+saga_cli.egg-info/top_level.txt

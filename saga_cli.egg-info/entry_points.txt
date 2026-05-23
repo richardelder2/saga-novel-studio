@@ -1,0 +1,2 @@
+[console_scripts]
+saga = saga_cli:main

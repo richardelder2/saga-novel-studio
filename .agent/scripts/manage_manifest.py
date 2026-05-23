@@ -5,24 +5,14 @@ import uuid
 import datetime
 import re
 import argparse
-import subprocess
 
-def get_git_branch(path):
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            cwd=path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-        )
-        return result.stdout.strip()
-    except Exception:
-        return "main"
+# Import core utilities
+import agent_core
 
 def locate_registry(workspace_path):
     paths = [
+        # Script-relative central folder (always reliable for script origin)
+        os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "projects_registry.json")),
         # Sibling CoAuthor
         os.path.abspath(os.path.join(os.path.dirname(workspace_path), "CoAuthor", ".agent", "projects_registry.json")),
         # Parent
@@ -33,6 +23,10 @@ def locate_registry(workspace_path):
     for p in paths:
         if os.path.exists(p):
             return p
+    # Default fallback relative to script
+    script_fallback = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "projects_registry.json"))
+    if os.path.exists(os.path.dirname(script_fallback)):
+        return script_fallback
     # Default to sibling CoAuthor if it exists, otherwise local
     sibling_coauthor_dir = os.path.abspath(os.path.join(os.path.dirname(workspace_path), "CoAuthor", ".agent"))
     if os.path.isdir(sibling_coauthor_dir):
@@ -40,22 +34,20 @@ def locate_registry(workspace_path):
     return os.path.join(workspace_path, ".agent", "projects_registry.json")
 
 def load_registry(registry_path):
-    if os.path.exists(registry_path):
+    content = agent_core.read_file_content(registry_path)
+    if content:
         try:
-            with open(registry_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+            return json.loads(content)
         except Exception:
             return []
     return []
 
 def save_registry(registry_path, registry_data):
-    os.makedirs(os.path.dirname(registry_path), exist_ok=True)
     try:
-        with open(registry_path, 'w', encoding='utf-8') as f:
-            json.dump(registry_data, f, indent=2)
-        return True
+        content = json.dumps(registry_data, indent=2)
+        return agent_core.write_file_content(registry_path, content)
     except Exception as e:
-        print(f"Error saving registry: {e}")
+        print(f"Error preparing registry data: {e}")
         return False
 
 def scan_projects(workspace_path, registry_path):
@@ -83,15 +75,16 @@ def scan_projects(workspace_path, registry_path):
     # Compile actual manifest details
     project_list = []
     for path, manifest_path in projects.items():
-        try:
-            with open(manifest_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            project_list.append({
-                "path": path,
-                "manifest": data
-            })
-        except Exception:
-            pass
+        content = agent_core.read_file_content(manifest_path)
+        if content:
+            try:
+                data = json.loads(content)
+                project_list.append({
+                    "path": path,
+                    "manifest": data
+                })
+            except Exception:
+                pass
             
     return project_list
 
@@ -113,15 +106,12 @@ def recalculate_stats(workspace_path):
         
         for chap_num, file in chapter_files:
             file_path = os.path.join(drafting_dir, file)
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                    words = len(content.split())
-                    word_count += words
-                    if chap_num > current_chapter:
-                        current_chapter = chap_num
-            except Exception:
-                pass
+            content = agent_core.read_file_content(file_path)
+            if content:
+                words = len(content.split())
+                word_count += words
+                if chap_num > current_chapter:
+                    current_chapter = chap_num
                 
         if current_chapter == 0 and len(chapter_files) > 0:
             current_chapter = len(chapter_files)
@@ -152,7 +142,6 @@ def print_dashboard(project_list, current_path):
         words = status_info.get("word_count", 0)
         
         scores = manifest.get("latest_scores", {})
-        # Get the latest available score
         critic = "N/A"
         for s_type in ["editorial_score", "drafting_score", "foundation_score"]:
             val = scores.get(s_type)
@@ -174,7 +163,6 @@ def print_dashboard(project_list, current_path):
     print("=" * 80 + "\n")
 
 def main():
-    sys.stdout.reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser(description="Manage project manifests and multi-project registry.")
     subparsers = parser.add_subparsers(dest="command")
     
@@ -212,7 +200,6 @@ def main():
     registry_path = locate_registry(workspace_path)
     
     if args.command == "init":
-        os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
         data = {
             "project_id": str(uuid.uuid4()),
             "title": args.title,
@@ -229,20 +216,23 @@ def main():
                 "drafting_score": None,
                 "editorial_score": None
             },
-            "git_branch": get_git_branch(workspace_path),
+            "git_branch": agent_core.run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"]) or "main",
             "last_updated_at": datetime.datetime.utcnow().isoformat() + "Z"
         }
-        with open(manifest_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
+        agent_core.write_file_content(manifest_path, json.dumps(data, indent=2))
         print(f"✅ Initialized manifest in {manifest_path}")
         
     elif args.command == "update":
-        if not os.path.exists(manifest_path):
-            print(f"❌ Error: manifest not found at {manifest_path}. Run init first.")
+        content = agent_core.read_file_content(manifest_path)
+        if not content:
+            print(f"❌ Error: manifest not found or empty at {manifest_path}. Run init first.")
             sys.exit(1)
             
-        with open(manifest_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        try:
+            data = json.loads(content)
+        except Exception as e:
+            print(f"❌ Error decoding manifest JSON: {e}")
+            sys.exit(1)
             
         if args.phase:
             data["status"]["active_phase"] = args.phase
@@ -268,22 +258,26 @@ def main():
             if chap > 0:
                 data["status"]["current_chapter"] = chap
                 
-        data["git_branch"] = get_git_branch(workspace_path)
+        data["git_branch"] = agent_core.run_git_command(["git", "rev-parse", "--abbrev-ref", "HEAD"]) or "main"
         data["last_updated_at"] = datetime.datetime.utcnow().isoformat() + "Z"
         
-        with open(manifest_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
+        agent_core.write_file_content(manifest_path, json.dumps(data, indent=2))
         print(f"✅ Updated manifest in {manifest_path}")
         
     elif args.command == "register":
         path_to_register = os.path.abspath(args.path if args.path else workspace_path)
         m_path = os.path.join(path_to_register, "00_Story_Bible", "project_manifest.json")
-        if not os.path.exists(m_path):
-            print(f"❌ Cannot register path '{path_to_register}': manifest not found.")
+        
+        m_content = agent_core.read_file_content(m_path)
+        if not m_content:
+            print(f"❌ Cannot register path '{path_to_register}': manifest not found or empty.")
             sys.exit(1)
             
-        with open(m_path, 'r', encoding='utf-8') as f:
-            m_data = json.load(f)
+        try:
+            m_data = json.loads(m_content)
+        except Exception as e:
+            print(f"❌ Error decoding project manifest: {e}")
+            sys.exit(1)
             
         registry = load_registry(registry_path)
         
@@ -304,12 +298,11 @@ def main():
         print_dashboard(project_list, workspace_path)
         
     elif args.command == "show":
-        if not os.path.exists(manifest_path):
+        content = agent_core.read_file_content(manifest_path)
+        if not content:
             print(f"❌ No manifest found in this directory: {manifest_path}")
             sys.exit(1)
-        with open(manifest_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        print(json.dumps(data, indent=2))
+        print(content)
         
     else:
         parser.print_help()

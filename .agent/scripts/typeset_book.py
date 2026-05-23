@@ -2,6 +2,9 @@ import os
 import glob
 import re
 
+# Import shared core utilities
+import agent_core
+
 def make_drop_cap(text):
     # Wraps the first actual visible letter in a drop-cap span, bypassing leading HTML tags.
     in_tag = False
@@ -15,7 +18,7 @@ def make_drop_cap(text):
     return text
 
 def markdown_to_basic_html(text):
-    # Simple markdown block parsers (since we don't assume external dependencies like markdown package)
+    # Simple markdown block parser with bold/italic and headers support
     lines = text.split("\n")
     html_lines = []
     in_paragraph = False
@@ -38,13 +41,13 @@ def markdown_to_basic_html(text):
         elif line.startswith("### "):
             if in_paragraph: html_lines.append("</p>"); in_paragraph = False
             html_lines.append(f"<h3>{line[4:]}</h3>")
-        # Horizontal Rule
-        elif line == "***" or line == "---":
+        # Horizontal Rules / Section breaks
+        elif line in ["***", "---", "___"]:
             if in_paragraph: html_lines.append("</p>"); in_paragraph = False
             html_lines.append("<div class='section-break'>✦ ✦ ✦</div>")
         # Paragraphs
         else:
-            # Inline formatting: Bold, Italic
+            # Inline formatting: Bold, Italic (safe standard bounds matching)
             line = re.sub(r"\*\*(.*?)\*\*", r"<strong>\1</strong>", line)
             line = re.sub(r"\*(.*?)\*", r"<em>\1</em>", line)
             
@@ -70,16 +73,15 @@ def typeset_book():
     
     chapter_files = sorted(glob.glob(os.path.join(draft_dir, "chapter_*.md")))
     if not chapter_files:
-        print("No chapter files found in 02_Drafting/.")
+        print("⚠️ No chapter files found in 02_Drafting/.")
         return
         
     book_content_html = []
     
     for filename in chapter_files:
-        with open(filename, "r", encoding="utf-8") as infile:
-            text = infile.read()
-            html_text = markdown_to_basic_html(text)
-            book_content_html.append(f"<section class='chapter-page'>\n{html_text}\n</section>")
+        text = agent_core.read_file_content(filename)
+        html_text = markdown_to_basic_html(text)
+        book_content_html.append(f"<section class='chapter-page'>\n{html_text}\n</section>")
             
     # Gorgeous print stylesheet
     html_template = f"""<!DOCTYPE html>
@@ -212,10 +214,8 @@ def typeset_book():
 </html>
 """
     
-    with open(output_file, "w", encoding="utf-8") as outfile:
-        outfile.write(html_template)
-        
-    print(f"Successfully generated print-typeset HTML book at {output_file}")
+    agent_core.write_file_content(output_file, html_template)
+    print(f"🎉 Successfully generated print-typeset HTML book at {output_file}")
 
 if __name__ == "__main__":
     typeset_book()

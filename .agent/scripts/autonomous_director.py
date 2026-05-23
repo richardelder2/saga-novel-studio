@@ -8,55 +8,14 @@ from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 
-def run_git_command(args):
-    try:
-        result = subprocess.run(
-            args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-        )
-        return result.stdout.strip()
-    except Exception as e:
-        print(f"⚠️ Git error: {e}")
-        return None
+import agent_core
 
-def read_file_content(path):
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return f.read()
-        except Exception:
-            return ""
-    return ""
-
-def write_file_content(path, content):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(content)
-
-def get_system_instruction(persona_filename):
-    path = os.path.join(".agent", persona_filename)
-    content = read_file_content(path)
-    if not content:
-        return f"You are a helpful creative writing assistant acting as {persona_filename}."
-    return content
-
-def call_gemini(client, prompt, system_instruction):
-    try:
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=0.7
-            )
-        )
-        return response.text
-    except Exception as e:
-        print(f"❌ Gemini API Call Error: {e}")
-        return ""
+# Use centralized core utilities for DRY compliance
+run_git_command = agent_core.run_git_command
+read_file_content = agent_core.read_file_content
+write_file_content = agent_core.write_file_content
+get_system_instruction = agent_core.get_system_instruction
+call_gemini = agent_core.call_gemini
 
 def generate_chapter_illustration(client, chapter_num, beats, dry_run):
     output_dir = "04_Publishing/illustrations"
@@ -453,14 +412,8 @@ def main():
     print("====================================")
     print("Autonomous Creative Loop active. Sitting back is advised.\n")
 
-    # Load credentials
-    load_dotenv()
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key or api_key == "YOUR_GEMINI_API_KEY":
-        print("❌ Error: GEMINI_API_KEY is not configured in '.env'.")
-        sys.exit(1)
-
-    client = genai.Client(api_key=api_key)
+    # Load credentials safely via core client
+    client = agent_core.get_gemini_client()
 
     # 1. Read Project Manifest
     manifest_path = "00_Story_Bible/project_manifest.json"

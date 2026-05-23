@@ -9,7 +9,9 @@ import time
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError
-from dotenv import load_dotenv
+
+# Import our new core utilities
+import agent_core
 
 # Available Gemini Native TTS prebuilt voices catalog
 ALL_VALID_VOICES = {
@@ -29,13 +31,7 @@ def guess_gender_and_assign_voice(char_name, assigned_voices):
         return VOICES["narrator"]
         
     char_file = f"00_Story_Bible/characters/{char_name.replace(' ', '_').lower()}.md"
-    content = ""
-    if os.path.exists(char_file):
-        try:
-            with open(char_file, "r", encoding="utf-8") as f:
-                content = f.read()
-        except Exception:
-            pass
+    content = agent_core.read_file_content(char_file)
             
     # 1. Look for explicit Voice Assignment or Voice field in character profile
     if content:
@@ -91,7 +87,6 @@ def guess_gender_and_assign_voice(char_name, assigned_voices):
             gender = "male"
 
     # 5. Assign an appropriate voice based on gender and story role
-    # Check if this character is a lead (Protagonist/Antagonist)
     is_lead = False
     if content:
         role_match = re.search(r'(?:role in story|role)\s*\**\s*:\s*\**\s*([a-zA-Z0-9_\s-]+)', content, re.IGNORECASE)
@@ -100,7 +95,7 @@ def guess_gender_and_assign_voice(char_name, assigned_voices):
             if "protagonist" in role_text or "antagonist" in role_text or "lead" in role_text or "hero" in role_text:
                 is_lead = True
 
-    # Identify voices already assigned to avoid duplication and sound clash
+    # Identify voices already assigned to avoid duplication
     assigned_voice_names = set(assigned_voices.values())
     
     if gender == "female":
@@ -125,7 +120,7 @@ def guess_gender_and_assign_voice(char_name, assigned_voices):
                 return cand
         return VOICES["fallback_m"]
 
-def chunk_text(text, max_chars=4000):
+def chunk_text(text, max_chars=3500):
     if len(text) <= max_chars:
         return [text]
         
@@ -154,15 +149,21 @@ def chunk_text(text, max_chars=4000):
         
     return chunks
 
-def synthesize_text_gemini(client, text, voice_name, max_retries=5, initial_delay=6.0):
+def synthesize_text_gemini(client, text, voice_name, max_retries=5, initial_delay=3.0):
+    """
+    Synthesizes text using Gemini native TTS, running as fast as possible
+    and backing off exponentially *only* on API 429 rate limit exceptions.
+    """
     delay = initial_delay
+    model_name = os.getenv("TTS_MODEL", "gemini-3.1-flash-tts-preview")
+    
     for attempt in range(1, max_retries + 1):
         try:
-            # Active rate-limiting throttle (sleep 6s to proactively avoid limits)
-            time.sleep(delay)
+            # Brief polite delay between operations (50ms) to ensure socket safety
+            time.sleep(0.05)
             
             response = client.models.generate_content(
-                model="gemini-3.1-flash-tts-preview",
+                model=model_name,
                 contents=text,
                 config=types.GenerateContentConfig(
                     response_modalities=["audio"],
@@ -175,25 +176,28 @@ def synthesize_text_gemini(client, text, voice_name, max_retries=5, initial_dela
                     )
                 )
             )
+            
             # Extract raw L16 PCM binary data
             part = response.candidates[0].content.parts[0]
             if part.inline_data and part.inline_data.data:
                 return part.inline_data.data
+                
         except APIError as e:
             if e.code == 429:
-                retry_after = 5.0
+                retry_after = delay
                 match = re.search(r'retry in ([\d\.]+)s', str(e), re.IGNORECASE)
                 if match:
                     retry_after = float(match.group(1)) + 1.0
-                print(f"  ⚠️ Rate limited (429). Attempt {attempt}/{max_retries}. Sleeping for {retry_after:.2f}s...")
+                print(f"  ⚠️ TTS rate limited (429). Attempt {attempt}/{max_retries}. Sleeping for {retry_after:.2f}s...")
                 time.sleep(retry_after)
-                delay = min(delay * 1.5, 12.0)
+                delay = min(delay * 2.0, 16.0)
             else:
                 print(f"  ❌ API Error during Gemini TTS synthesis: {e}")
                 break
         except Exception as e:
             print(f"  ❌ Error during Gemini TTS synthesis: {e}")
             break
+            
     return None
 
 def save_pcm_as_wav(pcm_data, output_file, sample_rate=24000, channels=1):
@@ -218,15 +222,8 @@ def main():
     print("🎙️ COAUTHOR NATIVE GEMINI AUDIOBOOK SYNTHESIZER 🎙️")
     print("-----------------------------------------------")
     
-    # Load environment
-    load_dotenv()
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key or api_key == "YOUR_GEMINI_API_KEY":
-        print("❌ Error: GEMINI_API_KEY is not configured in your .env file.")
-        print("Please add your key to '.env' in the root workspace folder.")
-        sys.exit(1)
-        
-    client = genai.Client(api_key=api_key)
+    # Initialize client safely using unified core
+    client = agent_core.get_gemini_client()
     
     script_path = "04_Publishing/audiobook_script.csv"
     output_path = "04_Publishing/audiobook.wav"
@@ -246,7 +243,7 @@ def main():
         for idx, row in enumerate(test_rows):
             speaker = row["Character"]
             text = row["Text"]
-            voice = assigned_voices[speaker]
+            voice = assigned_voice = assigned_voices.get(speaker, VOICES["neutral"])
             print(f"-> Synthesizing test block {idx+1}: {speaker} using {voice}...")
             audio_bytes = synthesize_text_gemini(client, text, voice)
             if audio_bytes:
@@ -264,7 +261,7 @@ def main():
     # 2. Full Audiobook Production Mode
     if not os.path.exists(script_path):
         print(f"❌ Error: audiobook script map '{script_path}' not found.")
-        print("Please run '/publish-manuscript' (Format choice 3) first to extract the dialogue script.")
+        print("Please run '/publish-manuscript' or build script map first.")
         sys.exit(1)
         
     print(f"Reading dialogue script map from: {script_path}...")
@@ -322,6 +319,7 @@ def main():
     print(f"\n🎙️ Synthesizing audiobook to {output_path}...")
     pcm_chunks = []
     failed_blocks = 0
+    start_time = time.time()
     
     for idx, row in enumerate(optimized_rows, start=1):
         speaker = row["Character"]
@@ -341,6 +339,9 @@ def main():
                 print(f"  ⚠️ Warning: Failed to synthesize chunk {c_idx+1} for speaker '{speaker}'.")
                 failed_blocks += 1
                 
+    elapsed = time.time() - start_time
+    print(f"\n🎙️ Synthesis execution finished in {elapsed:.2f} seconds.")
+    
     # 6. Assemble WAV
     if pcm_chunks:
         combined_pcm = b"".join(pcm_chunks)
