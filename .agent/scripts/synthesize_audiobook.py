@@ -5,8 +5,10 @@ import json
 import wave
 import argparse
 import re
+import time
 from google import genai
 from google.genai import types
+from google.genai.errors import APIError
 from dotenv import load_dotenv
 
 # Available Gemini Native TTS prebuilt voices catalog
@@ -152,30 +154,47 @@ def chunk_text(text, max_chars=4000):
         
     return chunks
 
-def synthesize_text_gemini(client, text, voice_name):
-    try:
-        response = client.models.generate_content(
-            model="gemini-3.1-flash-tts-preview",
-            contents=text,
-            config=types.GenerateContentConfig(
-                response_modalities=["audio"],
-                speech_config=types.SpeechConfig(
-                    voice_config=types.VoiceConfig(
-                        prebuilt_voice_config=types.PrebuiltVoiceConfig(
-                            voice_name=voice_name
+def synthesize_text_gemini(client, text, voice_name, max_retries=5, initial_delay=6.0):
+    delay = initial_delay
+    for attempt in range(1, max_retries + 1):
+        try:
+            # Active rate-limiting throttle (sleep 6s to proactively avoid limits)
+            time.sleep(delay)
+            
+            response = client.models.generate_content(
+                model="gemini-3.1-flash-tts-preview",
+                contents=text,
+                config=types.GenerateContentConfig(
+                    response_modalities=["audio"],
+                    speech_config=types.SpeechConfig(
+                        voice_config=types.VoiceConfig(
+                            prebuilt_voice_config=types.PrebuiltVoiceConfig(
+                                voice_name=voice_name
+                            )
                         )
                     )
                 )
             )
-        )
-        # Extract raw L16 PCM binary data
-        part = response.candidates[0].content.parts[0]
-        if part.inline_data and part.inline_data.data:
-            return part.inline_data.data
-        return None
-    except Exception as e:
-        print(f"⚠️ Error during Gemini TTS synthesis: {e}")
-        return None
+            # Extract raw L16 PCM binary data
+            part = response.candidates[0].content.parts[0]
+            if part.inline_data and part.inline_data.data:
+                return part.inline_data.data
+        except APIError as e:
+            if e.code == 429:
+                retry_after = 5.0
+                match = re.search(r'retry in ([\d\.]+)s', str(e), re.IGNORECASE)
+                if match:
+                    retry_after = float(match.group(1)) + 1.0
+                print(f"  ⚠️ Rate limited (429). Attempt {attempt}/{max_retries}. Sleeping for {retry_after:.2f}s...")
+                time.sleep(retry_after)
+                delay = min(delay * 1.5, 12.0)
+            else:
+                print(f"  ❌ API Error during Gemini TTS synthesis: {e}")
+                break
+        except Exception as e:
+            print(f"  ❌ Error during Gemini TTS synthesis: {e}")
+            break
+    return None
 
 def save_pcm_as_wav(pcm_data, output_file, sample_rate=24000, channels=1):
     print(f"Wrapping {len(pcm_data)} raw PCM bytes in standard WAV header...")

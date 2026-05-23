@@ -494,6 +494,42 @@ def main():
             # Brainstorm interactive session
             premise = interactive_brainstorming(client, premise_path)
             
+        # Check if 00_Story_Bible/market_analysis.md exists. If not, compile it first.
+        market_analysis_path = "00_Story_Bible/market_analysis.md"
+        market_analysis = read_file_content(market_analysis_path)
+        if not market_analysis or len(market_analysis.strip()) < 50:
+            print("Compiling a cynical market trend analysis report autonomously...")
+            if args.dry_run:
+                print("[DRY-RUN] Would call Gemini to generate market analysis.")
+                write_file_content(market_analysis_path, "# Cynical Market Analysis\n\n...")
+                market_analysis = "# Cynical Market Analysis\n\n..."
+            else:
+                genre = manifest.get("genre", "Fiction")
+                title = manifest.get("title", "this novel")
+                market_prompt = (
+                    f"Perform a cynical market trend analysis for a novel in the '{genre}' genre (working title: '{title}').\n"
+                    "Analyze current commercial best-sellers, reader demands, over-saturated tropes (red oceans), and under-served commercial gaps (blue oceans).\n"
+                    "Provide a brutal, high-concept strategy detailing how this novel can exploit commercial white space and capitalize on recent market trends."
+                )
+                
+                market_analyst_inst = (
+                    "You are a highly cynical commercial publishing executive who only cares about absolute unit sales, subverting/exploiting tropes, and finding commercial white space. "
+                    "Analyze current market demand brutally. Do not write filler. Output a structured, publication-ready report in professional markdown, covering:\n"
+                    "1. Target Genre & Sub-Genres\n"
+                    "2. Red Oceans (Over-saturated Tropes to Avoid/Subvert)\n"
+                    "3. Blue Oceans (Under-served Demand & Gaps)\n"
+                    "4. The Commercial Hook (How our book will capitalize on these trends)\n"
+                    "5. Top Trope Exploits & High-Concept Packaging"
+                )
+                
+                market_analysis = call_gemini(client, market_prompt, market_analyst_inst)
+                if market_analysis:
+                    write_file_content(market_analysis_path, market_analysis)
+                    print("✅ market_analysis.md compiled and saved to 00_Story_Bible/.")
+                else:
+                    print("❌ Generating market_analysis.md failed.")
+                    sys.exit(1)
+            
         print("Generating Outline autonomously via the Architect...")
         if args.dry_run:
             print("[DRY-RUN] Would call Gemini to act as Architect and generate outline.md.")
@@ -501,7 +537,11 @@ def main():
             write_file_content(outline_path, outline)
         else:
             system_inst = get_system_instruction("architect_instructions.md")
-            prompt = f"Based on the following premise, create a structured 6-beat chapter outline. Output in professional markdown.\n\nPremise:\n{premise}"
+            prompt = (
+                f"Based on the story premise and cynical market analysis below, create a structured 6-beat chapter outline "
+                f"that exploits commercial white space and reader demand.\n\n"
+                f"Market Analysis:\n{market_analysis}\n\nPremise:\n{premise}"
+            )
             outline = call_gemini(client, prompt, system_inst)
             if outline:
                 write_file_content(outline_path, outline)
@@ -572,18 +612,83 @@ def main():
             if not beats:
                 print(f" Beatsheet missing. Architect is seeding beats autonomously for Chapter {ch_str}...")
                 outline = read_file_content("01_Planning/outline.md")
+                market_analysis = read_file_content("00_Story_Bible/market_analysis.md")
                 if args.dry_run:
                     beats = f"# Chapter {next_ch} Beats\n\n* Scene 1: Jax Steele enters neon club.\n* Scene 2: He interrogates the bar tender.\n* Scene 3: He receives coordinates of the hacker warehouse."
                     write_file_content(beat_file, beats)
                 else:
                     system_inst = get_system_instruction("architect_instructions.md")
-                    prompt = f"Based on the outline below, draft a 3-scene beat sheet for Chapter {next_ch}.\n\nOutline:\n{outline}"
+                    prompt = (
+                        f"Based on the outline and cynical market analysis below, draft a 3-scene beat sheet "
+                        f"for Chapter {next_ch} that embeds commercial trope exploits and target hooks.\n\n"
+                        f"Market Analysis:\n{market_analysis}\n\nOutline:\n{outline}"
+                    )
                     beats = call_gemini(client, prompt, system_inst)
                     if beats:
                         write_file_content(beat_file, beats)
                     else:
                         print("❌ Beats generation failed.")
                         break
+                        
+            # ---------------- MODULAR CONTEXT-CLEARED PREPARATION ----------------
+            # Load Style Guide
+            style_guide = read_file_content("00_Story_Bible/style_guide.md")
+            
+            # Load Market Analysis
+            market_analysis = read_file_content("00_Story_Bible/market_analysis.md")
+            
+            # Load Character Profiles (Local + Shared Universe support)
+            char_files = glob.glob("00_Story_Bible/characters/*.md")
+            shared_path = manifest.get("shared_universe_path")
+            if shared_path and os.path.exists(shared_path):
+                shared_char_files = glob.glob(os.path.join(shared_path, "characters", "*.md"))
+                char_files.extend(shared_char_files)
+                seen_basenames = set()
+                deduped_files = []
+                for cf in char_files:
+                    bname = os.path.basename(cf)
+                    if bname not in seen_basenames:
+                        seen_basenames.add(bname)
+                        deduped_files.append(cf)
+                char_files = deduped_files
+                
+            char_context = ""
+            if char_files:
+                char_context_list = []
+                for cf in char_files:
+                    char_context_list.append(f"--- CHARACTER: {os.path.basename(cf)} ---\n{read_file_content(cf)}")
+                char_context = "\n\n".join(char_context_list)
+            
+            # Load World Settings (Local + Shared Universe support)
+            setting_files = glob.glob("00_Story_Bible/settings/*.md")
+            if shared_path and os.path.exists(shared_path):
+                shared_setting_files = glob.glob(os.path.join(shared_path, "settings", "*.md"))
+                setting_files.extend(shared_setting_files)
+                seen_setting_basenames = set()
+                deduped_settings = []
+                for sf in setting_files:
+                    bname = os.path.basename(sf)
+                    if bname not in seen_setting_basenames:
+                        seen_setting_basenames.add(bname)
+                        deduped_settings.append(sf)
+                setting_files = deduped_settings
+                
+            setting_context = ""
+            if setting_files:
+                setting_context_list = []
+                for sf in setting_files:
+                    setting_context_list.append(f"--- SETTING: {os.path.basename(sf)} ---\n{read_file_content(sf)}")
+                setting_context = "\n\n".join(setting_context_list)
+            
+            # Load previous chapter bridge text (last 3 paragraphs) to maintain continuity without drift
+            prev_ch_bridge = ""
+            if next_ch > 1:
+                prev_ch_str = f"{(next_ch - 1):02d}"
+                prev_content = read_file_content(f"02_Drafting/chapter_{prev_ch_str}.md")
+                if prev_content:
+                    paragraphs = [p.strip() for p in prev_content.split("\n\n") if p.strip()]
+                    bridge_paras = paragraphs[-3:] if len(paragraphs) >= 3 else paragraphs
+                    prev_ch_bridge = "\n\n".join(bridge_paras)
 
             # Self-Correction Retry Loop for Drafting
             best_draft = ""
@@ -597,11 +702,29 @@ def main():
                     prompt = (
                         f"You are revising Chapter {next_ch} based on a critique. Here is the previous draft:\n\n"
                         f"{draft}\n\nHere is the Evaluator's critique outlining the issues and score:\n\n"
-                        f"{critique}\n\nPlease revise the chapter to fix the issues, enhance depth, expand prose quality, and eliminate clichés. "
-                        f"Maintain the scene beats:\n\n{beats}"
+                        f"{critique}\n\n"
+                        f"Please revise the chapter to fix the issues, enhance depth, expand prose quality, and eliminate clichés.\n"
+                        f"Ensure the revisions align with our style, character, world settings, and market goals.\n\n"
+                        f"--- CYNICAL MARKET ANALYSIS ---\n{market_analysis}\n\n"
+                        f"--- STORY STYLE GUIDE ---\n{style_guide}\n\n"
+                        f"--- ACTIVE CHARACTERS ---\n{char_context}\n\n"
+                        f"--- WORLD SETTINGS ---\n{setting_context}\n\n"
+                        f"--- CHAPTER BEATS SHEET ---\n{beats}\n\n"
                     )
                 else:
-                    prompt = f"Draft chapter {next_ch} based on these scene beats. Maintain deep POV, active voice, and avoid clichés.\n\nBeats:\n{beats}"
+                    prompt = (
+                        f"Write a fully detailed, immersive narrative prose draft for Chapter {next_ch} based strictly on the beats sheet below.\n\n"
+                        f"--- CYNICAL MARKET ANALYSIS ---\n{market_analysis}\n\n"
+                        f"--- STORY STYLE GUIDE ---\n{style_guide}\n\n"
+                        f"--- ACTIVE CHARACTERS ---\n{char_context}\n\n"
+                        f"--- WORLD SETTINGS ---\n{setting_context}\n\n"
+                        f"--- CHAPTER BEATS SHEET ---\n{beats}\n\n"
+                    )
+                    if prev_ch_bridge:
+                        prompt += (
+                            f"--- CHAPTER {next_ch-1} BRIDGE (Maintain direct chronological continuity with these closing lines) ---\n"
+                            f"{prev_ch_bridge}\n\n"
+                        )
                 
                 if args.dry_run:
                     draft = f"# Chapter {next_ch}\n\nJax Steele adjusted his leather coat, rain beaded on his synthetic shoulder. The synth-bass rattled his chest-plate as he entered the neon club. The bartender stared..."
@@ -675,16 +798,10 @@ def main():
                 print("[DRY-RUN] Lore Keeper would update character profiles.")
             else:
                 system_inst = get_system_instruction("lore_keeper_instructions.md")
-                char_files = glob.glob("00_Story_Bible/characters/*.md")
-                char_summaries = []
-                for cf in char_files:
-                    char_summaries.append(f"--- CHARACTER: {os.path.basename(cf)} ---\n{read_file_content(cf)}")
-                characters_context = "\n\n".join(char_summaries)
-                
                 lore_prompt = (
                     f"You have just finished Chapter {next_ch}. Below is the final polished text of the chapter:\n\n"
                     f"{polished_draft}\n\nHere are the current character files in the Story Bible:\n\n"
-                    f"{characters_context}\n\n"
+                    f"{char_context}\n\n"
                     f"Please review the chapter for any character development, relationship changes, new secrets revealed, or settings introduced. "
                     f"For each relevant character file, provide an updated markdown profile. Return a JSON structure matching exactly:\n"
                     f"{{\n  \"characters\": [\n    {{\"filename\": \"character_file_name.md\", \"content\": \"full updated markdown content here\"}}\n  ]\n}}"
@@ -703,11 +820,14 @@ def main():
                             filename = char_data.get("filename")
                             content = char_data.get("content")
                             if filename and content:
-                                # Ensure only target filenames
                                 filename = os.path.basename(filename)
-                                char_path = os.path.join("00_Story_Bible/characters", filename)
+                                # If shared_universe_path is set, write to it instead of local!
+                                if shared_path and os.path.exists(shared_path):
+                                    char_path = os.path.join(shared_path, "characters", filename)
+                                else:
+                                    char_path = os.path.join("00_Story_Bible/characters", filename)
                                 write_file_content(char_path, content)
-                                print(f"  • Updated character file: {filename}")
+                                print(f"  • Updated character file: {filename} at {char_path}")
                     except Exception as e:
                         print(f"  ⚠️ Warning: Could not parse Lore Keeper update JSON: {e}")
 
