@@ -30,6 +30,7 @@ def main():
     parser = argparse.ArgumentParser(description="Start a new book project.")
     parser.add_argument("--name", type=str, help="Name of the new project")
     parser.add_argument("--generate", action="store_true", help="Generate a random name")
+    parser.add_argument("--mode", type=str, choices=["manual", "yolo"], default=None, help="Writing mode choice (manual or yolo)")
     args = parser.parse_args()
 
     print("✨ WELCOME TO THE NOVEL FACTORY ✨")
@@ -42,6 +43,27 @@ def main():
     else:
         # Default to generation if no name provided or --generate flag used
         project_name = generate_name()
+    
+    # 1.5. Get Development Mode
+    mode_choice = "manual"
+    if args.mode:
+        mode_choice = args.mode
+    else:
+        # Prompt only if in an interactive terminal
+        if sys.stdin.isatty():
+            try:
+                print("\nSelect Book Development Mode:")
+                print("  1. 💻 MANUAL MODE (Collaborative Chapter-by-Chapter) [Default]")
+                print("  2. 🚀 YOLO MODE (Autonomous End-to-End Novel Generation)")
+                choice = input("Enter choice (1 or 2): ").strip()
+                if choice == "2":
+                    mode_choice = "yolo"
+            except Exception:
+                mode_choice = "manual"
+        else:
+            mode_choice = "manual"
+            
+    print(f"\nConfiguration: Name = '{project_name}', Mode = '{mode_choice.upper()}'")
     
     # 2. Determine Paths
     current_dir = os.getcwd()
@@ -93,6 +115,7 @@ def main():
                 "drafting_score": None,
                 "editorial_score": None
             },
+            "mode": mode_choice,
             "git_branch": "main",
             "last_updated_at": datetime.datetime.utcnow().isoformat() + "Z"
         }
