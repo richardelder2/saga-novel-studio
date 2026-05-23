@@ -1104,6 +1104,75 @@ def run_config(args_creative=None, args_critic=None, args_mode=None, args_key=No
     print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.B_GREEN}🎉 CONFIGURATION SUCCESS! Settings synchronized successfully.               {TUI.RESET:<66}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
     print(f"{TUI.BOLD}{TUI.B_CYAN}└──────────────────────────────────────────────────────────────────────────────┘{TUI.RESET}\n")
 
+def run_welcome_wizard():
+    print_logo()
+    
+    # Load registry to see if we have existing projects
+    workspace_path = os.getcwd()
+    registry_path = manage_manifest.locate_registry(workspace_path)
+    project_list = manage_manifest.scan_projects(workspace_path, registry_path)
+    
+    if not project_list:
+        # No existing projects, go straight to init
+        print("Welcome, Creator. Let's configure your first story book project.")
+        print("-" * 80)
+        run_init("")
+        return
+        
+    print(f"{TUI.BOLD}{TUI.CYAN}✨ WELCOME TO THE SAGA WRITING ENGINE ✨{TUI.RESET}")
+    print(f"{TUI.GRAY}─{TUI.RESET}" * 80)
+    print("No active project detected in this directory.")
+    print("\nWhat would you like to do today?")
+    print(f"  [{TUI.BOLD}{TUI.B_GREEN}1{TUI.RESET}] 📂 Enter an existing project...")
+    print(f"  [{TUI.BOLD}{TUI.B_GREEN}2{TUI.RESET}] ➕ Start a brand new book project...")
+    
+    choice = prompt_user("Select Option", "1")
+    
+    if choice == "2":
+        run_init("")
+    else:
+        print(f"\n{TUI.BOLD}{TUI.CYAN}📂 SELECT AN EXISTING PROJECT:{TUI.RESET}")
+        print(f"{TUI.GRAY}─{TUI.RESET}" * 80)
+        
+        # Sort projects by title
+        sorted_projects = sorted(project_list, key=lambda x: x["manifest"].get("title", ""))
+        for idx, item in enumerate(sorted_projects, start=1):
+            title = item["manifest"].get("title", "Untitled Book")
+            path = item["path"]
+            phase = item["manifest"].get("status", {}).get("active_phase", "Planning")
+            print(f"  [{TUI.BOLD}{TUI.B_GREEN}{idx}{TUI.RESET}] {TUI.B_WHITE}{title}{TUI.RESET} {TUI.DIM}({phase}){TUI.RESET}")
+            
+        print(f"  [{TUI.BOLD}{TUI.B_GREEN}M{TUI.RESET}] ➕ Start a brand new book project...")
+        
+        ans = prompt_user("Select Project Option (or 'M' to start new)", "1")
+        if ans.lower() == 'm':
+            run_init("")
+            return
+            
+        try:
+            sel_idx = int(ans) - 1
+            if 0 <= sel_idx < len(sorted_projects):
+                selected = sorted_projects[sel_idx]
+                title = selected["manifest"].get("title", "Untitled")
+                path = selected["path"]
+                
+                # Switch cwd momentarily to print its status card!
+                original_cwd = os.getcwd()
+                try:
+                    os.chdir(path)
+                    run_status()
+                finally:
+                    os.chdir(original_cwd)
+                    
+                print(f"{TUI.BOLD}{TUI.B_GREEN}👉 TO ACTIVATE THIS WORKSPACE AND RUN COMMANDS, COPY & RUN:{TUI.RESET}")
+                print(f"   {TUI.BOLD}{TUI.YELLOW}cd \"{path}\"{TUI.RESET}\n")
+            else:
+                print(f"{TUI.BOLD}{TUI.RED}❌ Invalid selection. Starting a new book...{TUI.RESET}")
+                run_init("")
+        except Exception:
+            print(f"{TUI.BOLD}{TUI.RED}❌ Invalid input. Starting a new book...{TUI.RESET}")
+            run_init("")
+
 def main():
     # Dynamic Local Routing: If there is a saga_cli.py in current working directory and it is not this file itself,
     # forward execution to that script to respect the local project's environment.
@@ -1164,7 +1233,7 @@ def main():
         if os.path.exists(manifest_path):
             run_status()
         else:
-            run_init("")
+            run_welcome_wizard()
 
 if __name__ == "__main__":
     main()
