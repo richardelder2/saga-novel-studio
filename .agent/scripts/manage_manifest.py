@@ -119,24 +119,40 @@ def recalculate_stats(workspace_path):
     return word_count, current_chapter
 
 def print_dashboard(project_list, current_path):
-    print("\n" + "=" * 80)
-    print(" " * 22 + "📖 THE NOVEL FACTORY DIRECTORY 📖")
-    print("=" * 80)
-    print(f"{'Title':<22} | {'Phase':<17} | {'Chap':<4} | {'Words':<6} | {'Critic':<6} | {'Git Branch':<10} {'Status'}")
-    print("-" * 80)
+    if sys.platform == 'win32':
+        os.system('')
+
+    CYAN = "\033[36m"
+    B_CYAN = "\033[96m"
+    B_BLUE = "\033[94m"
+    B_MAGENTA = "\033[95m"
+    GREEN = "\033[32m"
+    B_GREEN = "\033[92m"
+    YELLOW = "\033[33m"
+    WHITE = "\033[37m"
+    B_WHITE = "\033[97m"
+    GRAY = "\033[90m"
+    BOLD = "\033[1m"
+    RESET = "\033[0m"
+
+    print(f"\n{BOLD}{B_MAGENTA}┌────────────────────────┬──────────────────┬──────┬────────┬────────┬─────────────┐{RESET}")
+    print(f"{BOLD}{B_MAGENTA}│{RESET}                       {BOLD}{B_WHITE}📖 THE NOVEL FACTORY DIRECTORY 📖{RESET}                      {BOLD}{B_MAGENTA}│{RESET}")
+    print(f"{BOLD}{B_MAGENTA}├────────────────────────┼──────────────────┼──────┼────────┼────────┼─────────────┤{RESET}")
+    print(f"{BOLD}{B_MAGENTA}│{RESET} {BOLD}{B_CYAN}{'Title':<22}{RESET} {BOLD}{B_MAGENTA}│{RESET} {BOLD}{B_CYAN}{'Phase':<16}{RESET} {BOLD}{B_MAGENTA}│{RESET} {BOLD}{B_CYAN}{'Chap':<4}{RESET} {BOLD}{B_MAGENTA}│{RESET} {BOLD}{B_CYAN}{'Words':<6}{RESET} {BOLD}{B_MAGENTA}│{RESET} {BOLD}{B_CYAN}{'Critic':<6}{RESET} {BOLD}{B_MAGENTA}│{RESET} {BOLD}{B_CYAN}{'Git Branch':<11}{RESET} {BOLD}{B_MAGENTA}│{RESET}")
+    print(f"{BOLD}{B_MAGENTA}├────────────────────────┼──────────────────┼──────┼────────┼────────┼─────────────┤{RESET}")
     
     for item in sorted(project_list, key=lambda x: x["manifest"].get("title", "")):
         path = item["path"]
         manifest = item["manifest"]
         
         title = manifest.get("title", "Untitled Book")
-        if len(title) > 20:
-            title = title[:17] + "..."
+        if len(title) > 22:
+            title = title[:19] + "..."
             
         status_info = manifest.get("status", {})
-        phase = status_info.get("active_phase", "Phase 1: Planning")
-        if len(phase) > 15:
-            phase = phase[:14] + "..."
+        phase = status_info.get("active_phase", "Planning")
+        if len(phase) > 16:
+            phase = phase[:13] + "..."
             
         chap = status_info.get("current_chapter", 0)
         words = status_info.get("word_count", 0)
@@ -150,17 +166,32 @@ def print_dashboard(project_list, current_path):
                 break
                 
         branch = manifest.get("git_branch", "main")
-        if len(branch) > 9:
+        if len(branch) > 11:
             branch = branch[:8] + "..."
             
         is_current = os.path.abspath(path) == os.path.abspath(current_path)
-        marker = "⭐ [ACTIVE]" if is_current else ""
         
-        print(f"{title:<22} | {phase:<17} | {chap:<4} | {words:<6} | {critic:<6} | {branch:<10} {marker}")
+        if is_current:
+            title_styled = f"{BOLD}{B_GREEN}{title:<22}{RESET}"
+            phase_styled = f"{B_GREEN}{phase:<16}{RESET}"
+            chap_styled = f"{B_GREEN}{chap:<4}{RESET}"
+            words_styled = f"{B_GREEN}{words:<6,}{RESET}"
+            critic_styled = f"{B_GREEN}{critic:<6}{RESET}"
+            branch_styled = f"{B_GREEN}{branch:<11}{RESET}"
+            row_marker = f" {BOLD}{B_GREEN}⭐ [ACTIVE]{RESET}"
+        else:
+            title_styled = f"{WHITE}{title:<22}{RESET}"
+            phase_styled = f"{GRAY}{phase:<16}{RESET}"
+            chap_styled = f"{WHITE}{chap:<4}{RESET}"
+            words_styled = f"{WHITE}{words:<6,}{RESET}"
+            critic_styled = f"{YELLOW}{critic:<6}{RESET}"
+            branch_styled = f"{GRAY}{branch:<11}{RESET}"
+            row_marker = ""
+            
+        print(f"{BOLD}{B_MAGENTA}│{RESET} {title_styled} {BOLD}{B_MAGENTA}│{RESET} {phase_styled} {BOLD}{B_MAGENTA}│{RESET} {chap_styled} {BOLD}{B_MAGENTA}│{RESET} {words_styled} {BOLD}{B_MAGENTA}│{RESET} {critic_styled} {BOLD}{B_MAGENTA}│{RESET} {branch_styled} {BOLD}{B_MAGENTA}│{RESET}{row_marker}")
         
-    print("=" * 80)
-    print(f"Total Projects Tracked: {len(project_list)}")
-    print("=" * 80 + "\n")
+    print(f"{BOLD}{B_MAGENTA}└────────────────────────┴──────────────────┴──────┴────────┴────────┴─────────────┘{RESET}")
+    print(f" {BOLD}{WHITE}Total Projects Tracked:{RESET} {B_CYAN}{len(project_list)}{RESET}\n")
 
 def main():
     parser = argparse.ArgumentParser(description="Manage project manifests and multi-project registry.")

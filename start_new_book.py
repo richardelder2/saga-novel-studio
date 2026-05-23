@@ -149,8 +149,38 @@ def main():
         print(f"⚠️ Warning: Could not initialize Git: {e}")
 
     # 5. Done
-    print("\n🎉 SUCCESS! Your new writing desk is ready.")
-    print(f"Folder: {new_project_path}")
+    if sys.platform == 'win32':
+        os.system('')
+        
+    B_CYAN = "\033[96m"
+    B_GREEN = "\033[92m"
+    B_WHITE = "\033[97m"
+    YELLOW = "\033[33m"
+    GRAY = "\033[90m"
+    BOLD = "\033[1m"
+    RESET = "\033[0m"
+
+    print(f"\n{BOLD}{B_CYAN}┌──────────────────────────────────────────────────────────────────────────────┐{RESET}")
+    print(f"{BOLD}{B_CYAN}│{RESET}  {BOLD}{B_GREEN}🎉 SUCCESS! YOUR NEW WRITING DESK IS READY!{RESET:<66}  {BOLD}{B_CYAN}│{RESET}")
+    print(f"{BOLD}{B_CYAN}├──────────────────────────────────────────────────────────────────────────────┤{RESET}")
+    print(f"{BOLD}{B_CYAN}│{RESET}  Desk created successfully at:                                                {BOLD}{B_CYAN}│{RESET}")
+    display_path = new_project_path
+    if len(display_path) > 72:
+        display_path = "..." + display_path[-69:]
+    print(f"{BOLD}{B_CYAN}│{RESET}  {GRAY}{display_path:<74}{RESET}  {BOLD}{B_CYAN}│{RESET}")
+    print(f"{BOLD}{B_CYAN}├──────────────────────────────────────────────────────────────────────────────┤{RESET}")
+    
+    if mode_choice == "yolo":
+        print(f"{BOLD}{B_CYAN}│{RESET}  {BOLD}{B_CYAN}🚀 YOLO MODE IS CONFIGURED!{RESET:<74}  {BOLD}{B_CYAN}│{RESET}")
+        print(f"{BOLD}{B_CYAN}│{RESET}  To launch the autonomous writer engine:                                      {BOLD}{B_CYAN}│{RESET}")
+        print(f"{BOLD}{B_CYAN}│{RESET}    {BOLD}{YELLOW}cd {project_name}{RESET:<70}  {BOLD}{B_CYAN}│{RESET}")
+        print(f"{BOLD}{B_CYAN}│{RESET}    {BOLD}{YELLOW}saga --yolo{RESET:<70}  {BOLD}{B_CYAN}│{RESET}")
+    else:
+        print(f"{BOLD}{B_CYAN}│{RESET}  To begin collaborative manual drafting:                                      {BOLD}{B_CYAN}│{RESET}")
+        print(f"{BOLD}{B_CYAN}│{RESET}    {BOLD}{YELLOW}cd {project_name}{RESET:<70}  {BOLD}{B_CYAN}│{RESET}")
+        print(f"{BOLD}{B_CYAN}│{RESET}    {BOLD}{YELLOW}saga --status{RESET:<70}  {BOLD}{B_CYAN}│{RESET}")
+        
+    print(f"{BOLD}{B_CYAN}└──────────────────────────────────────────────────────────────────────────────┘{RESET}\n")
 
 if __name__ == "__main__":
     main()

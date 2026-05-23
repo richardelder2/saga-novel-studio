@@ -13,6 +13,10 @@ if sys.stderr.encoding != 'utf-8':
     except Exception:
         pass
 
+# Enable ANSI escape sequences natively on Windows
+if sys.platform == 'win32':
+    os.system('')
+
 import glob
 import json
 import re
@@ -21,6 +25,34 @@ import datetime
 import subprocess
 import shutil
 import random
+
+# Premium TUI styling colors & codes
+class TUI:
+    CYAN = "\033[36m"
+    MAGENTA = "\033[35m"
+    BLUE = "\033[34m"
+    GREEN = "\033[32m"
+    YELLOW = "\033[33m"
+    RED = "\033[31m"
+    WHITE = "\033[37m"
+    GRAY = "\033[90m"
+    
+    B_CYAN = "\033[96m"
+    B_MAGENTA = "\033[95m"
+    B_BLUE = "\033[94m"
+    B_WHITE = "\033[97m"
+    B_GREEN = "\033[92m"
+    B_YELLOW = "\033[93m"
+    
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
+    UNDERLINE = "\033[4m"
+    RESET = "\033[0m"
+
+    @staticmethod
+    def clean(text):
+        """Removes ANSI codes to calculate actual printed string length."""
+        return re.sub(r'\033\[[0-9;]*m', '', text)
 
 # Cool names generator
 ADJECTIVES = ["crimson", "obsidian", "nebular", "astral", "midnight", "solar", "lunar", "silent", "phantom", "echoing", "crystal", "iron", "velvet", "storm", "cyber", "ethereal"]
@@ -38,9 +70,16 @@ import synthesize_audiobook
 import typeset_book
 
 def print_logo():
-    print("=" * 80)
-    print(" " * 22 + "🌌 SAGA: THE NOVEL ENGINEERING ENGINE 🌌")
-    print("=" * 80)
+    logo = f"""
+{TUI.BOLD}{TUI.B_CYAN}  ██████╗  █████╗  ██████╗  █████╗ 
+{TUI.B_CYAN} ██╔════╝ ██╔══██╗██╔════╝ ██╔══██╗
+{TUI.B_BLUE} ╚█████╗  ███████║██║  ███╗███████║
+{TUI.B_BLUE}  ╚═══██╗ ██╔══██║██║   ██║██╔══██║
+{TUI.B_MAGENTA} ██████╔╝ ██║  ██║╚██████╔╝██║  ██║
+{TUI.B_MAGENTA} ╚══════╝  ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝{TUI.RESET}
+    {TUI.BOLD}{TUI.B_WHITE}🌌 SAGA: THE NOVEL ENGINEERING STUDIO 🌌{TUI.RESET}
+    """
+    print(logo)
 
 def prompt_user(question, default=""):
     prompt_text = f"{question} [{default}]: " if default else f"{question}: "
@@ -209,15 +248,40 @@ def run_init(target_name=""):
     except Exception as e:
         print(f"⚠️ Warning: Could not initialize Git: {e}")
         
-    print("-" * 80)
-    print("🎉 SUCCESS! SAGA STORY BIBLE FOUNDATIONS FULLY ESTABLISHED!")
-    print(f"Project '{title}' has been successfully spun up inside:")
-    print(f"  {new_project_path}")
-    print("\nTo start writing your new book, change directories:")
-    print(f"  cd {project_name}")
-    print("And check your status:")
-    print("  saga --status")
-    print("=" * 80 + "\n")
+    print(f"\n{TUI.BOLD}{TUI.B_CYAN}┌──────────────────────────────────────────────────────────────────────────────┐{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.B_GREEN}🎉 SUCCESS! SAGA STORY BIBLE FOUNDATIONS FULLY ESTABLISHED!{TUI.RESET:<66}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}├──────────────────────────────────────────────────────────────────────────────┤{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  Project '{TUI.BOLD}{title}{TUI.RESET}' successfully spun up at:                             {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    
+    # We display a safe truncated path if it exceeds length or just wrap it cleanly
+    display_path = new_project_path
+    if len(display_path) > 72:
+        display_path = "..." + display_path[-69:]
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.GRAY}{display_path:<74}{TUI.RESET}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}├──────────────────────────────────────────────────────────────────────────────┤{TUI.RESET}")
+    
+    if writing_mode == "yolo":
+        print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.B_CYAN}🚀 YOLO MODE IS ACTIVE!{TUI.RESET:<74}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+        print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  To begin the autonomous creative process manually:                           {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+        print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}    {TUI.BOLD}{TUI.YELLOW}cd {project_name}{TUI.RESET:<70}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+        print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}    {TUI.BOLD}{TUI.YELLOW}saga --yolo{TUI.RESET:<70}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    else:
+        print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  To start writing your new book, change directories:                          {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+        print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}    {TUI.BOLD}{TUI.YELLOW}cd {project_name}{TUI.RESET:<70}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+        print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}    {TUI.BOLD}{TUI.YELLOW}saga --status{TUI.RESET:<70}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+        
+    print(f"{TUI.BOLD}{TUI.B_CYAN}└──────────────────────────────────────────────────────────────────────────────┘{TUI.RESET}\n")
+
+    if writing_mode == "yolo" and sys.stdin.isatty():
+        ans = prompt_user("Would you like SAGA to start writing the novel autonomously right now? (y/n)", "n")
+        if ans.lower() == "y":
+            print(f"\n{TUI.BOLD}{TUI.B_CYAN}🤖 Starting SAGA Autonomous Director inside {new_project_path}...{TUI.RESET}\n")
+            director_script = os.path.join(new_project_path, ".agent", "scripts", "autonomous_director.py")
+            if os.path.exists(director_script):
+                subprocess.run([sys.executable, director_script], cwd=new_project_path)
+            else:
+                print(f"{TUI.BOLD}{TUI.RED}❌ Error: Director script not found in new project at {director_script}{TUI.RESET}")
+            sys.exit(0)
 
 def run_dashboard():
     # Invokes manifest registry to list all books on system
@@ -230,13 +294,13 @@ def run_status():
     manifest_path = "00_Story_Bible/project_manifest.json"
     content = agent_core.read_file_content(manifest_path)
     if not content:
-        print("❌ Error: No active Saga project manifest found in this directory.")
+        print(f"{TUI.BOLD}{TUI.RED}❌ Error: No active Saga project manifest found in this directory.{TUI.RESET}")
         return
         
     try:
         data = json.loads(content)
     except Exception as e:
-        print(f"❌ Error decoding manifest JSON: {e}")
+        print(f"{TUI.BOLD}{TUI.RED}❌ Error decoding manifest JSON: {e}{TUI.RESET}")
         return
         
     title = data.get("title", "Untitled")
@@ -247,60 +311,101 @@ def run_status():
     total_ch = status.get("total_chapters", 20)
     word_count = status.get("word_count", 0)
     scores = data.get("latest_scores", {})
+    mode = data.get("mode", "manual").upper()
     
-    print("=" * 80)
-    print(f"  📖 SAGA PROJECT STATUS: {title.upper()}")
-    print("=" * 80)
-    print(f"  🎭 Overarching Genre  : {genre}")
-    print(f"  📍 Active Phase       : {phase}")
+    # Render premium styled box card
+    print(f"\n{TUI.BOLD}{TUI.B_CYAN}┌──────────────────────────────────────────────────────────────────────────────┐{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.B_WHITE}📖 SAGA PROJECT STATUS: {title.upper()}{TUI.RESET:<48}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}├──────────────────────────────────────────────────────────────────────────────┤{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}🎭 Overarching Genre  :{TUI.RESET} {TUI.B_WHITE}{genre:<48}{TUI.RESET}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}📍 Active Phase       :{TUI.RESET} {TUI.B_MAGENTA}{phase:<48}{TUI.RESET}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}🚀 Operational Mode   :{TUI.RESET} {TUI.B_GREEN if mode == 'YOLO' else TUI.YELLOW}{mode:<48}{TUI.RESET}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
     
-    # Progress bar
+    # Progress bar calculation
     percent = int((current_ch / total_ch) * 100) if total_ch > 0 else 0
     bar_width = 30
     filled = int((percent / 100) * bar_width)
-    bar = "█" * filled + "░" * (bar_width - filled)
-    print(f"  📊 Draft Progress     : [{bar}] {percent}% ({current_ch}/{total_ch} chapters)")
-    print(f"  📝 Words Drafted      : {word_count:,} words")
+    bar = f"{TUI.B_GREEN}█{TUI.RESET}" * filled + f"{TUI.GRAY}░{TUI.RESET}" * (bar_width - filled)
     
-    # Scores
-    print(f"  🎯 Latest Score Gates :")
-    print(f"    • Foundation Score  : {scores.get('foundation_score') or 'N/A'}")
-    print(f"    • Drafting Score    : {scores.get('drafting_score') or 'N/A'}")
-    print(f"    • Editorial Score   : {scores.get('editorial_score') or 'N/A'}")
-    print("-" * 80)
-    print(f"  💻 Scribe Model       : {data.get('model_configuration', {}).get('creative_model') or 'N/A'}")
-    print(f"  🕵️ Critic Model       : {data.get('model_configuration', {}).get('critic_model') or 'N/A'}")
-    print("=" * 80 + "\n")
+    bar_outline = f"[{bar}] {TUI.BOLD}{TUI.B_GREEN}{percent}%{TUI.RESET} ({current_ch}/{total_ch} chapters)"
+    raw_bar_detail = f"[{'█'*filled + '░'*(bar_width - filled)}] {percent}% ({current_ch}/{total_ch} chapters)"
+    padding_len = 48 - len(raw_bar_detail)
+    if padding_len < 0: padding_len = 0
+    
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}📊 Draft Progress     :{TUI.RESET} {bar_outline}{' ' * padding_len}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}📝 Words Drafted      :{TUI.RESET} {TUI.B_WHITE}{word_count:,} words{TUI.RESET:<42}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}├──────────────────────────────────────────────────────────────────────────────┤{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}🎯 Latest Score Gates :{TUI.RESET:<52}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    
+    def format_score(val):
+        if val is None:
+            return f"{TUI.GRAY}N/A{TUI.RESET}"
+        score_val = float(val)
+        if score_val >= 8.5:
+            return f"{TUI.BOLD}{TUI.B_GREEN}{score_val:.2f}/10 (Excellent){TUI.RESET}"
+        elif score_val >= 7.5:
+            return f"{TUI.BOLD}{TUI.B_GREEN}{score_val:.2f}/10 (Pass){TUI.RESET}"
+        else:
+            return f"{TUI.BOLD}{TUI.RED}{score_val:.2f}/10 (Needs Work){TUI.RESET}"
+            
+    # Calculate score visual prints
+    f_score = format_score(scores.get('foundation_score'))
+    d_score = format_score(scores.get('drafting_score'))
+    e_score = format_score(scores.get('editorial_score'))
+    
+    def get_raw_score_len(val):
+        if val is None: return 3
+        score_val = float(val)
+        if score_val >= 8.5: return len(f"{score_val:.2f}/10 (Excellent)")
+        elif score_val >= 7.5: return len(f"{score_val:.2f}/10 (Pass)")
+        else: return len(f"{score_val:.2f}/10 (Needs Work)")
+        
+    f_pad = 48 - get_raw_score_len(scores.get('foundation_score'))
+    d_pad = 48 - get_raw_score_len(scores.get('drafting_score'))
+    e_pad = 48 - get_raw_score_len(scores.get('editorial_score'))
+    
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}    • {TUI.WHITE}Foundation Score  :{TUI.RESET} {f_score}{' ' * f_pad}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}    • {TUI.WHITE}Drafting Score    :{TUI.RESET} {d_score}{' ' * d_pad}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}    • {TUI.WHITE}Editorial Score   :{TUI.RESET} {e_score}{' ' * e_pad}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}├──────────────────────────────────────────────────────────────────────────────┤{TUI.RESET}")
+    
+    cr_model = data.get('model_configuration', {}).get('creative_model') or 'N/A'
+    ct_model = data.get('model_configuration', {}).get('critic_model') or 'N/A'
+    
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}💻 Scribe Model       :{TUI.RESET} {TUI.WHITE}{cr_model:<48}{TUI.RESET}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}🕵️ Critic Model       :{TUI.RESET} {TUI.WHITE}{ct_model:<48}{TUI.RESET}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}└──────────────────────────────────────────────────────────────────────────────┘{TUI.RESET}\n")
 
 def run_outline():
     print_logo()
-    print("📐 SAGA ARCHITECT: Starting Chapter Outline Generation Loop...")
-    print("-" * 80)
+    print(f"{TUI.BOLD}{TUI.B_CYAN}📐 SAGA ARCHITECT: Starting Chapter Outline Generation Loop...{TUI.RESET}")
+    print(f"{TUI.GRAY}─{TUI.RESET}" * 80)
     
     manifest_path = "00_Story_Bible/project_manifest.json"
     content = agent_core.read_file_content(manifest_path)
     if not content:
-        print("❌ Error: Run 'python saga_cli.py --init' first.")
+        print(f"{TUI.BOLD}{TUI.RED}❌ Error: Run 'saga --init' first.{TUI.RESET}")
         return
         
     try:
         manifest = json.loads(content)
     except Exception as e:
-        print(f"❌ Error loading manifest: {e}")
+        print(f"{TUI.BOLD}{TUI.RED}❌ Error loading manifest: {e}{TUI.RESET}")
         return
         
     premise = agent_core.read_file_content("01_Planning/premise.md")
     if not premise or len(premise.strip()) < 20:
-        print("❌ Story premise is missing. Please populate 01_Planning/premise.md first.")
+        print(f"{TUI.BOLD}{TUI.RED}❌ Story premise is missing. Please populate 01_Planning/premise.md first.{TUI.RESET}")
         return
         
     client = agent_core.get_gemini_client()
     
-    # Check/compile Cynical Market Analysis
+    # 1. Market Analysis Step
+    print(f"\n{TUI.BOLD}{TUI.B_BLUE}[1/4]{TUI.RESET} 🔍 {TUI.BOLD}Cynical Market Analysis:{TUI.RESET} Compiling strategic demand white spaces...")
     market_path = "00_Story_Bible/market_analysis.md"
     market_analysis = agent_core.read_file_content(market_path)
     if not market_analysis or len(market_analysis.strip()) < 50:
-        print("Compiling commercial publishing strategy and market gaps autonomously...")
+        print(f"      {TUI.DIM}Market strategy report missing. Generating autonomously via AI Critic...{TUI.RESET}")
         genre = manifest.get("genre", "Fiction")
         title = manifest.get("title", "this novel")
         
@@ -323,13 +428,15 @@ def run_outline():
         market_analysis = agent_core.call_gemini(client, market_prompt, market_analyst_inst, model=agent_core.get_model_config("critic"))
         if market_analysis:
             agent_core.write_file_content(market_path, market_analysis)
-            print("✓ market_analysis.md compiled and saved to 00_Story_Bible/.")
+            print(f"      {TUI.BOLD}{TUI.GREEN}✓ Created market_analysis.md successfully.{TUI.RESET}")
         else:
-            print("❌ Generating market_analysis.md failed.")
+            print(f"      {TUI.BOLD}{TUI.RED}❌ Generating market_analysis.md failed.{TUI.RESET}")
             return
+    else:
+        print(f"      {TUI.GREEN}✓ Active market strategy report loaded from 00_Story_Bible/market_analysis.md.{TUI.RESET}")
 
-    # Generate Outline
-    print("Generating chapter-by-chapter outline via the Architect...")
+    # 2. Outline Generation Step
+    print(f"\n{TUI.BOLD}{TUI.B_BLUE}[2/4]{TUI.RESET} 📐 {TUI.BOLD}Outline Generation:{TUI.RESET} Architecting chapter outline structure...")
     system_inst = agent_core.get_system_instruction("architect_instructions.md")
     prompt = (
         f"Based on the story premise and cynical market analysis below, create a structured 6-beat chapter outline "
@@ -339,13 +446,13 @@ def run_outline():
     outline = agent_core.call_gemini(client, prompt, system_inst)
     if outline:
         agent_core.write_file_content("01_Planning/outline.md", outline)
-        print("✓ Created 01_Planning/outline.md")
+        print(f"      {TUI.BOLD}{TUI.GREEN}✓ Created 01_Planning/outline.md.{TUI.RESET}")
     else:
-        print("❌ Outlining failed.")
+        print(f"      {TUI.BOLD}{TUI.RED}❌ Outlining phase failed.{TUI.RESET}")
         return
 
-    # Evaluator audit gate
-    print("Auditing Outline structure autonomously via the Evaluator...")
+    # 3. Evaluator Audit Step
+    print(f"\n{TUI.BOLD}{TUI.B_BLUE}[3/4]{TUI.RESET} 🕵️ {TUI.BOLD}Evaluator Gate:{TUI.RESET} Auditing outline structure against structural rules...")
     system_inst = agent_core.get_system_instruction("evaluator_instructions.md")
     eval_prompt = f"Audit the following outline against Foolscap rules. Provide a critique and score out of 10.\n\nOutline:\n{outline}"
     critique = agent_core.call_gemini(client, eval_prompt, system_inst, model=agent_core.get_model_config("critic"))
@@ -353,14 +460,18 @@ def run_outline():
     score = 8.2
     if critique:
         agent_core.write_file_content("01_Planning/foundation_critique.md", critique)
-        print("✓ Outline audit logged at 01_Planning/foundation_critique.md.")
+        print(f"      {TUI.BOLD}{TUI.GREEN}✓ Structure review logged at 01_Planning/foundation_critique.md.{TUI.RESET}")
         
         # Parse score
         score_match = re.search(r'Score:\s*(\d+\.\d+|\d+)', critique)
         if score_match:
             score = float(score_match.group(1))
+    else:
+        print(f"      {TUI.YELLOW}⚠️ Audit failed. Defaulting foundation outline score to 8.2.{TUI.RESET}")
             
-    print(f"  • Foundation Outline Score: {score}/10")
+    # 4. Result Analysis Step
+    print(f"\n{TUI.BOLD}{TUI.B_BLUE}[4/4]{TUI.RESET} 🎯 {TUI.BOLD}Score Analysis:{TUI.RESET} Scoring outline quality index...")
+    print(f"      • Foundation Outline Score: {TUI.BOLD}{TUI.B_GREEN}{score}/10{TUI.RESET}")
     
     # Update manifest phase
     manifest["status"]["active_phase"] = "Phase 2: Drafting"
@@ -368,10 +479,10 @@ def run_outline():
     manifest["last_updated_at"] = datetime.datetime.utcnow().isoformat() + "Z"
     agent_core.write_file_content(manifest_path, json.dumps(manifest, indent=2))
     
-    print("-" * 80)
-    print("🎉 OUTLINING COMPLETE! Project advanced to Phase 2: Drafting.")
-    print("SAGA is ready to draft chapters. Run: python saga_cli.py --draft 1")
-    print("=" * 80 + "\n")
+    print(f"\n{TUI.BOLD}{TUI.B_CYAN}┌──────────────────────────────────────────────────────────────────────────────┐{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.B_GREEN}🎉 OUTLINING COMPLETE! Project advanced to Phase 2: Drafting.{TUI.RESET:<66}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  SAGA is ready to draft chapters. Run: {TUI.BOLD}{TUI.YELLOW}saga --draft 1{TUI.RESET:<36}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}└──────────────────────────────────────────────────────────────────────────────┘{TUI.RESET}\n")
 
 def run_draft(chapter_num):
     print_logo()
@@ -601,28 +712,31 @@ def run_draft(chapter_num):
 
 def run_publish():
     print_logo()
-    print("🎨 SAGA PRODUCTION: Packaging ePub, Print layouts, and WAV Audiobooks...")
-    print("-" * 80)
+    print(f"{TUI.BOLD}{TUI.B_CYAN}🎨 SAGA PRODUCTION: Packaging ePub, Print Layouts, and WAV Audiobooks...{TUI.RESET}")
+    print(f"{TUI.GRAY}─{TUI.RESET}" * 80)
     
     # 1. LaTeX Typeset HTML
-    print("🎨 Typesetting HTML book print pages...")
+    print(f"\n{TUI.BOLD}{TUI.B_BLUE}[1/5]{TUI.RESET} 🎨 {TUI.BOLD}Typesetting:{TUI.RESET} Rendering HTML book print pages...")
     typeset_book.typeset_book()
+    print(f"      {TUI.GREEN}✓ Print typeset files generated.{TUI.RESET}")
     
     # 2. Extract dialogue script CSV map
-    print("📝 Parsing audiobook dialogue speaker coreference map...")
+    print(f"\n{TUI.BOLD}{TUI.B_BLUE}[2/5]{TUI.RESET} 📝 {TUI.BOLD}Coreference:{TUI.RESET} Parsing audiobook dialogue speaker map...")
     parse_audiobook.build_audiobook_script()
+    print(f"      {TUI.GREEN}✓ Dialogue speaker script created.{TUI.RESET}")
     
     # 3. Synthesize wav audiobook (Native Gemini TTS)
-    print("🎙️ Synthesizing multi-voice WAV audiobook (dynamic rate-limiting)...")
+    print(f"\n{TUI.BOLD}{TUI.B_BLUE}[3/5]{TUI.RESET} 🎙️ {TUI.BOLD}Synthesis:{TUI.RESET} Generating multi-voice WAV audiobook (dynamic rate-limiting)...")
     synthesize_audiobook.main()
+    print(f"      {TUI.GREEN}✓ Audiobook WAV synthesized successfully.{TUI.RESET}")
     
     # 4. Build landing page Promo
+    print(f"\n{TUI.BOLD}{TUI.B_BLUE}[4/5]{TUI.RESET} 🌐 {TUI.BOLD}Promo Landing Page:{TUI.RESET} Compiling index.html promotional assets...")
     manifest_path = "00_Story_Bible/project_manifest.json"
     content = agent_core.read_file_content(manifest_path)
     if content:
         try:
             data = json.loads(content)
-            print("\n🌐 Compiling landing page index.html promo page...")
             title = data.get("title", "Untitled Novel")
             genre = data.get("genre", "Fiction")
             synopsis = agent_core.read_file_content("01_Planning/premise.md")
@@ -786,14 +900,162 @@ def run_publish():
 </html>
 """
             agent_core.write_file_content("04_Publishing/index.html", html_content)
-            print("🎉 Promo Landing Page generated at 04_Publishing/index.html")
+            print(f"      {TUI.GREEN}✓ Promo Landing Page generated at 04_Publishing/index.html{TUI.RESET}")
         except Exception as e:
-            print(f"⚠️ Landing page compiling failed: {e}")
+            print(f"      {TUI.YELLOW}⚠️ Landing page compiling failed: {e}{TUI.RESET}")
 
-    print("-" * 80)
-    print("🎉 PUBLISHING RUN FULLY ACCOMPLISHED!")
-    print("Print Layouts, ePUBs, Audiobooks, and Landing Pages completed successfully.")
-    print("=" * 80 + "\n")
+    # 5. Git Commit and Finish
+    print(f"\n{TUI.BOLD}{TUI.B_BLUE}[5/5]{TUI.RESET} 💾 {TUI.BOLD}Release versioning:{TUI.RESET} Creating Git commit for release container...")
+    agent_core.run_git_command(["git", "add", "."])
+    agent_core.run_git_command(["git", "commit", "-m", "SAGA: Compiled publishing formats, audiobook WAV, cover concepts, and promo landing page"])
+    print(f"      {TUI.GREEN}✓ Compiled publishing assets committed.{TUI.RESET}")
+
+    print(f"\n{TUI.BOLD}{TUI.B_CYAN}┌──────────────────────────────────────────────────────────────────────────────┐{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.B_GREEN}🎉 PUBLISHING RUN FULLY ACCOMPLISHED!{TUI.RESET:<66}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  Print layouts, ePUBs, Audiobooks, and Landing Pages completed.               {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}└──────────────────────────────────────────────────────────────────────────────┘{TUI.RESET}\n")
+
+def run_yolo():
+    print_logo()
+    manifest_path = "00_Story_Bible/project_manifest.json"
+    if not os.path.exists(manifest_path):
+        print(f"{TUI.BOLD}{TUI.RED}❌ Error: No active Saga project manifest found.{TUI.RESET}")
+        print("Please change directory (cd) into your active book project first.")
+        return
+        
+    director_script = os.path.join(".agent", "scripts", "autonomous_director.py")
+    if os.path.exists(director_script):
+        print(f"{TUI.BOLD}{TUI.B_CYAN}🚀 LAUNCHING AUTONOMOUS YOLO NOVEL STUDIO...{TUI.RESET}")
+        print(f"{TUI.GRAY}Orchestrating outlining, drafting, auditing and versioning autonomously.{TUI.RESET}")
+        print(f"{TUI.GRAY}─{TUI.RESET}" * 80)
+        
+        subprocess.run([sys.executable, director_script])
+    else:
+        print(f"{TUI.BOLD}{TUI.RED}❌ Error: Director script not found at {director_script}{TUI.RESET}")
+
+def run_config(args_creative=None, args_critic=None, args_mode=None, args_key=None, interactive=False):
+    print_logo()
+    print(f"{TUI.BOLD}{TUI.B_CYAN}⚙️ SAGA STUDIO CONFIGURATION ENGINE{TUI.RESET}")
+    print(f"{TUI.GRAY}─{TUI.RESET}" * 80)
+    
+    manifest_path = "00_Story_Bible/project_manifest.json"
+    manifest = None
+    if os.path.exists(manifest_path):
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+        except Exception as e:
+            print(f"{TUI.YELLOW}⚠️ Warning: Could not decode project manifest: {e}{TUI.RESET}")
+
+    creative = args_creative
+    critic = args_critic
+    mode = args_mode
+    key = args_key
+    
+    if interactive:
+        print(f"\n{TUI.BOLD}{TUI.CYAN}Configure Models & Environment Credentials:{TUI.RESET}")
+        
+        # A. Creative Model
+        current_creative = "gemini-2.5-flash"
+        if manifest:
+            current_creative = manifest.get("model_configuration", {}).get("creative_model", "gemini-2.5-flash")
+        print(f"\nSelect Scribe (Creative) Model [Current: {TUI.BOLD}{current_creative}{TUI.RESET}]:")
+        print("  [1] gemini-2.5-flash (Default - Fast & Cost-Effective)")
+        print("  [2] gemini-2.5-pro   (Deep Reasoning & Highly Immersive Prose)")
+        print("  [3] Custom Model Name")
+        choice = prompt_user("Select Option (Press Enter to keep current)", "")
+        if choice == "1":
+            creative = "gemini-2.5-flash"
+        elif choice == "2":
+            creative = "gemini-2.5-pro"
+        elif choice == "3":
+            creative = prompt_user("Enter Custom Model String")
+            
+        # B. Critic Model
+        current_critic = "gemini-2.5-flash"
+        if manifest:
+            current_critic = manifest.get("model_configuration", {}).get("critic_model", "gemini-2.5-flash")
+        print(f"\nSelect Evaluator (Critic) Model [Current: {TUI.BOLD}{current_critic}{TUI.RESET}]:")
+        print("  [1] gemini-2.5-flash (Default - Highly responsive)")
+        print("  [2] gemini-2.5-pro   (Recommended - Severe adversarial scoring audits)")
+        print("  [3] Custom Model Name")
+        choice = prompt_user("Select Option (Press Enter to keep current)", "")
+        if choice == "1":
+            critic = "gemini-2.5-flash"
+        elif choice == "2":
+            critic = "gemini-2.5-pro"
+        elif choice == "3":
+            critic = prompt_user("Enter Custom Model String")
+
+        # C. Writing Mode
+        current_mode = "manual"
+        if manifest:
+            current_mode = manifest.get("mode", "manual")
+        print(f"\nSelect Development Mode [Current: {TUI.BOLD}{current_mode.upper()}{TUI.RESET}]:")
+        print("  [1] MANUAL (Chapter-by-chapter collaborative pair drafting)")
+        print("  [2] YOLO   (Autonomous end-to-end novel engineering factory)")
+        choice = prompt_user("Select Option (Press Enter to keep current)", "")
+        if choice == "1":
+            mode = "manual"
+        elif choice == "2":
+            mode = "yolo"
+
+        # D. API Credentials Key
+        print(f"\nUpdate Gemini Developer API Key (GEMINI_API_KEY):")
+        ans = prompt_user("Would you like to update your API credential key? (y/n)", "n")
+        if ans.lower() == "y":
+            key = prompt_user("Enter Gemini API Key (AIzaSy...)")
+            
+    # Apply Updates
+    changes = False
+    if manifest:
+        if creative:
+            manifest.setdefault("model_configuration", {})["creative_model"] = creative
+            changes = True
+            print(f"  {TUI.GREEN}✓ Updated Scribe Creative Model to:{TUI.RESET} {TUI.BOLD}{creative}{TUI.RESET}")
+        if critic:
+            manifest.setdefault("model_configuration", {})["critic_model"] = critic
+            changes = True
+            print(f"  {TUI.GREEN}✓ Updated Evaluator Critic Model to:{TUI.RESET} {TUI.BOLD}{critic}{TUI.RESET}")
+        if mode:
+            manifest["mode"] = mode
+            changes = True
+            print(f"  {TUI.GREEN}✓ Updated Project Development Mode to:{TUI.RESET} {TUI.BOLD}{mode.upper()}{TUI.RESET}")
+            
+        if changes:
+            manifest["last_updated_at"] = datetime.datetime.utcnow().isoformat() + "Z"
+            try:
+                with open(manifest_path, "w", encoding="utf-8") as f:
+                    json.dump(manifest, f, indent=2)
+                print(f"  {TUI.GREEN}✓ project_manifest.json updated successfully.{TUI.RESET}")
+            except Exception as e:
+                print(f"  {TUI.RED}❌ Error writing manifest: {e}{TUI.RESET}")
+    else:
+        if creative or critic or mode:
+            print(f"  {TUI.YELLOW}⚠️ Warning: Not inside an active project. Local manifest settings skipped.{TUI.RESET}")
+            
+    if key:
+        env_path = ".env"
+        env_content = ""
+        if os.path.exists(env_path):
+            with open(env_path, "r", encoding="utf-8") as f:
+                env_content = f.read()
+                
+        if "GEMINI_API_KEY=" in env_content:
+            new_env_content = re.sub(r'GEMINI_API_KEY=.*', f'GEMINI_API_KEY={key}', env_content)
+        else:
+            new_env_content = env_content.strip() + f"\nGEMINI_API_KEY={key}\n"
+            
+        try:
+            with open(env_path, "w", encoding="utf-8") as f:
+                f.write(new_env_content)
+            print(f"  {TUI.GREEN}✓ Saved API credential key safely in '.env' file.{TUI.RESET}")
+        except Exception as e:
+            print(f"  {TUI.RED}❌ Error saving credentials to .env: {e}{TUI.RESET}")
+            
+    print(f"\n{TUI.BOLD}{TUI.B_CYAN}┌──────────────────────────────────────────────────────────────────────────────┐{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.B_GREEN}🎉 CONFIGURATION SUCCESS! Settings synchronized successfully.               {TUI.RESET:<66}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}└──────────────────────────────────────────────────────────────────────────────┘{TUI.RESET}\n")
 
 def main():
     # Dynamic Local Routing: If there is a saga_cli.py in current working directory and it is not this file itself,
@@ -815,6 +1077,15 @@ def main():
     parser.add_argument("--outline", action="store_true", help="Run the Architect chapter outlining phase and audit gate.")
     parser.add_argument("--draft", type=int, help="Draft the specified chapter with structured self-correction retry loops.")
     parser.add_argument("--publish", action="store_true", help="Compile ePub containers, typesets, dialog scripts, and synthesizers.")
+    
+    # Yolo and Config Commands
+    parser.add_argument("--yolo", action="store_true", help="Start the autonomous YOLO writing director loop.")
+    parser.add_argument("--config", action="store_true", help="Launch interactive configuration wizard.")
+    parser.add_argument("--creative-model", type=str, help="Update Scribe Creative model override in manifest.")
+    parser.add_argument("--critic-model", type=str, help="Update Evaluator Critic model override in manifest.")
+    parser.add_argument("--mode", type=str, choices=["manual", "yolo"], help="Update writing mode in manifest.")
+    parser.add_argument("--key", type=str, help="Update Gemini Developer API key in .env.")
+    
     args = parser.parse_args()
     
     if args.init is not None:
@@ -829,6 +1100,17 @@ def main():
         run_draft(args.draft)
     elif args.publish:
         run_publish()
+    elif args.yolo:
+        run_yolo()
+    elif args.config or args.creative_model or args.critic_model or args.mode or args.key:
+        is_interactive = args.config and not (args.creative_model or args.critic_model or args.mode or args.key)
+        run_config(
+            args_creative=args.creative_model,
+            args_critic=args.critic_model,
+            args_mode=args.mode,
+            args_key=args.key,
+            interactive=is_interactive
+        )
     else:
         # Default status check
         manifest_path = "00_Story_Bible/project_manifest.json"
