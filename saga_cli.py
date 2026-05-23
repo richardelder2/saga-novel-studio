@@ -71,13 +71,13 @@ import typeset_book
 
 def print_logo():
     logo = f"""
-{TUI.BOLD}{TUI.B_CYAN}  ██████╗  █████╗  ██████╗  █████╗ 
-{TUI.B_CYAN} ██╔════╝ ██╔══██╗██╔════╝ ██╔══██╗
-{TUI.B_BLUE} ╚█████╗  ███████║██║  ███╗███████║
-{TUI.B_BLUE}  ╚═══██╗ ██╔══██║██║   ██║██╔══██║
-{TUI.B_MAGENTA} ██████╔╝ ██║  ██║╚██████╔╝██║  ██║
-{TUI.B_MAGENTA} ╚══════╝  ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝{TUI.RESET}
-    {TUI.BOLD}{TUI.B_WHITE}🌌 SAGA: THE NOVEL ENGINEERING STUDIO 🌌{TUI.RESET}
+  \033[38;5;220m██████╗  █████╗  ██████╗  █████╗ 
+ \033[38;5;214m██╔════╝ ██╔══██╗██╔════╝ ██╔══██╗
+ \033[38;5;208m╚█████╗  ███████║██║  ███╗███████║
+  \033[38;5;202m╚═══██╗ ██╔══██║██║   ██║██╔══██║
+ \033[38;5;197m██████╔╝ ██║  ██║╚██████╔╝██║  ██║
+ \033[38;5;162m╚══════╝  ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝{TUI.RESET}
+    \033[1;38;5;220m🌌 SAGA: THE NOVEL ENGINEERING STUDIO 🌌{TUI.RESET}
     """
     print(logo)
 
@@ -312,69 +312,116 @@ def run_status():
     word_count = status.get("word_count", 0)
     scores = data.get("latest_scores", {})
     mode = data.get("mode", "manual").upper()
+    branch = data.get("git_branch", "main")
     
-    # Render premium styled box card
-    print(f"\n{TUI.BOLD}{TUI.B_CYAN}┌──────────────────────────────────────────────────────────────────────────────┐{TUI.RESET}")
-    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.B_WHITE}📖 SAGA PROJECT STATUS: {title.upper()}{TUI.RESET:<48}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
-    print(f"{TUI.BOLD}{TUI.B_CYAN}├──────────────────────────────────────────────────────────────────────────────┤{TUI.RESET}")
-    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}🎭 Overarching Genre  :{TUI.RESET} {TUI.B_WHITE}{genre:<48}{TUI.RESET}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
-    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}📍 Active Phase       :{TUI.RESET} {TUI.B_MAGENTA}{phase:<48}{TUI.RESET}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
-    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}🚀 Operational Mode   :{TUI.RESET} {TUI.B_GREEN if mode == 'YOLO' else TUI.YELLOW}{mode:<48}{TUI.RESET}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
-    
+    # Safely get current directory path
+    display_path = os.getcwd()
+    if len(display_path) > 22:
+        display_path = "..." + display_path[-19:]
+
+    # Helper function to perfectly pad console lines regardless of ANSI formatting
+    def fit_line(text, width, align='left', fill=' '):
+        clean_len = len(TUI.clean(text))
+        padding = width - clean_len
+        if padding <= 0:
+            return text
+        if align == 'left':
+            return text + (fill * padding)
+        elif align == 'right':
+            return (fill * padding) + text
+        else:
+            left_pad = padding // 2
+            right_pad = padding - left_pad
+            return (fill * left_pad) + text + (fill * right_pad)
+
     # Progress bar calculation
     percent = int((current_ch / total_ch) * 100) if total_ch > 0 else 0
-    bar_width = 30
+    bar_width = 8
     filled = int((percent / 100) * bar_width)
     bar = f"{TUI.B_GREEN}█{TUI.RESET}" * filled + f"{TUI.GRAY}░{TUI.RESET}" * (bar_width - filled)
-    
-    bar_outline = f"[{bar}] {TUI.BOLD}{TUI.B_GREEN}{percent}%{TUI.RESET} ({current_ch}/{total_ch} chapters)"
-    raw_bar_detail = f"[{'█'*filled + '░'*(bar_width - filled)}] {percent}% ({current_ch}/{total_ch} chapters)"
-    padding_len = 48 - len(raw_bar_detail)
-    if padding_len < 0: padding_len = 0
-    
-    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}📊 Draft Progress     :{TUI.RESET} {bar_outline}{' ' * padding_len}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
-    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}📝 Words Drafted      :{TUI.RESET} {TUI.B_WHITE}{word_count:,} words{TUI.RESET:<42}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
-    print(f"{TUI.BOLD}{TUI.B_CYAN}├──────────────────────────────────────────────────────────────────────────────┤{TUI.RESET}")
-    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}🎯 Latest Score Gates :{TUI.RESET:<52}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
-    
+    bar_outline = f"[{bar}] {TUI.BOLD}{TUI.B_GREEN}{percent}%{TUI.RESET}"
+
+    # Score formatter
     def format_score(val):
         if val is None:
             return f"{TUI.GRAY}N/A{TUI.RESET}"
         score_val = float(val)
         if score_val >= 8.5:
-            return f"{TUI.BOLD}{TUI.B_GREEN}{score_val:.2f}/10 (Excellent){TUI.RESET}"
+            return f"{TUI.BOLD}{TUI.B_GREEN}{score_val:.2f}/10{TUI.RESET} {TUI.DIM}(Excellent){TUI.RESET}"
         elif score_val >= 7.5:
-            return f"{TUI.BOLD}{TUI.B_GREEN}{score_val:.2f}/10 (Pass){TUI.RESET}"
+            return f"{TUI.BOLD}{TUI.B_GREEN}{score_val:.2f}/10{TUI.RESET} {TUI.DIM}(Pass){TUI.RESET}"
         else:
-            return f"{TUI.BOLD}{TUI.RED}{score_val:.2f}/10 (Needs Work){TUI.RESET}"
-            
-    # Calculate score visual prints
+            return f"{TUI.BOLD}{TUI.RED}{score_val:.2f}/10{TUI.RESET} {TUI.DIM}(Needs Work){TUI.RESET}"
+
     f_score = format_score(scores.get('foundation_score'))
     d_score = format_score(scores.get('drafting_score'))
     e_score = format_score(scores.get('editorial_score'))
-    
-    def get_raw_score_len(val):
-        if val is None: return 3
-        score_val = float(val)
-        if score_val >= 8.5: return len(f"{score_val:.2f}/10 (Excellent)")
-        elif score_val >= 7.5: return len(f"{score_val:.2f}/10 (Pass)")
-        else: return len(f"{score_val:.2f}/10 (Needs Work)")
-        
-    f_pad = 48 - get_raw_score_len(scores.get('foundation_score'))
-    d_pad = 48 - get_raw_score_len(scores.get('drafting_score'))
-    e_pad = 48 - get_raw_score_len(scores.get('editorial_score'))
-    
-    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}    • {TUI.WHITE}Foundation Score  :{TUI.RESET} {f_score}{' ' * f_pad}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
-    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}    • {TUI.WHITE}Drafting Score    :{TUI.RESET} {d_score}{' ' * d_pad}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
-    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}    • {TUI.WHITE}Editorial Score   :{TUI.RESET} {e_score}{' ' * e_pad}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
-    print(f"{TUI.BOLD}{TUI.B_CYAN}├──────────────────────────────────────────────────────────────────────────────┤{TUI.RESET}")
-    
-    cr_model = data.get('model_configuration', {}).get('creative_model') or 'N/A'
-    ct_model = data.get('model_configuration', {}).get('critic_model') or 'N/A'
-    
-    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}💻 Scribe Model       :{TUI.RESET} {TUI.WHITE}{cr_model:<48}{TUI.RESET}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
-    print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}  {TUI.BOLD}{TUI.CYAN}🕵️ Critic Model       :{TUI.RESET} {TUI.WHITE}{ct_model:<48}{TUI.RESET}  {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
-    print(f"{TUI.BOLD}{TUI.B_CYAN}└──────────────────────────────────────────────────────────────────────────────┘{TUI.RESET}\n")
+
+    # Context-aware Next Action recommendation
+    if current_ch == total_ch and total_ch > 0:
+        next_action_tip = "Run saga --publish to compile book ePUB & Audiobook!"
+    elif phase == "Phase 1: Planning":
+        next_action_tip = "Run saga --outline to generate beats & story outline!"
+    elif phase == "Phase 2: Drafting":
+        next_action_tip = f"Run saga --draft {current_ch + 1} to draft the next chapter!"
+    else:
+        next_action_tip = "Run saga --draft <num> to work on a chapter!"
+
+    if mode == "YOLO":
+        next_action_tip = "Run saga --yolo to resume autonomous drafting!"
+
+    # Compile left-column rows (width = 36 characters)
+    left_rows = [
+        f"  {TUI.BOLD}Welcome back, Creator!{TUI.RESET}",
+        "",
+        f"      \033[38;5;208m▄██████▄██████▄\033[0m",
+        f"     \033[38;5;220m███\033[37m░░░░\033[38;5;220m███\033[37m░░░░\033[38;5;220m███\033[0m",
+        f"     \033[38;5;220m███\033[37m░░░░\033[38;5;220m███\033[37m░░░░\033[38;5;220m███\033[0m",
+        f"     \033[38;5;220m███\033[37m░░░░\033[38;5;220m███\033[37m░░░░\033[38;5;220m███\033[0m",
+        f"      \033[38;5;208m▀██████▀██████▀\033[0m",
+        "",
+        f"  {TUI.CYAN}Active Book :{TUI.RESET} {TUI.B_WHITE}{title}{TUI.RESET}",
+        f"  {TUI.CYAN}Mode        :{TUI.RESET} {TUI.B_GREEN if mode == 'YOLO' else TUI.YELLOW}{mode} MODE{TUI.RESET}",
+        f"  {TUI.CYAN}Git Branch  :{TUI.RESET} {TUI.WHITE}{branch}{TUI.RESET}",
+        f"  {TUI.CYAN}Directory   :{TUI.RESET} {TUI.GRAY}{display_path}{TUI.RESET}"
+    ]
+
+    # Compile right-column rows (width = 37 characters)
+    right_rows = [
+        f"  {TUI.BOLD}🎯 DRAFT PROGRESS{TUI.RESET}",
+        f"     Active Phase : {TUI.B_MAGENTA}{phase}{TUI.RESET}",
+        f"     Chapters     : {TUI.WHITE}{current_ch} / {total_ch} chapters{TUI.RESET}",
+        f"     Words Drafted: {TUI.B_WHITE}{word_count:,} words{TUI.RESET}",
+        f"     Progress     : {bar_outline}",
+        "",
+        f"  {TUI.BOLD}🕵️ QUALITY SCORE GATES{TUI.RESET}",
+        f"     Foundation   : {f_score}",
+        f"     Drafting     : {d_score}",
+        f"     Editorial    : {e_score}",
+        "",
+        f"  {TUI.BOLD}🚀 SUGGESTED ACTIONS{TUI.RESET}",
+        f"     • {TUI.B_YELLOW}{next_action_tip}{TUI.RESET}"
+    ]
+
+    # Synchronize heights of both columns
+    while len(left_rows) < len(right_rows):
+        left_rows.append("")
+    while len(right_rows) < len(left_rows):
+        right_rows.append("")
+
+    # Construct the header and separator bars mathematically
+    left_top = f"┌─── SAGA STUDIO v1.1.0 "
+    left_top += "─" * (38 - len(left_top))
+    top_border = left_top + "┬" + "─" * 39 + "┐"
+    bottom_border = "└" + "─" * 38 + "┴" + "─" * 39 + "┘"
+
+    # Print the dual-column card
+    print(f"\n{TUI.BOLD}{TUI.B_CYAN}{top_border}{TUI.RESET}")
+    for l_row, r_row in zip(left_rows, right_rows):
+        l_padded = fit_line(l_row, 37)
+        r_padded = fit_line(r_row, 38)
+        print(f"{TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET} {l_padded} {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET} {r_padded} {TUI.BOLD}{TUI.B_CYAN}│{TUI.RESET}")
+    print(f"{TUI.BOLD}{TUI.B_CYAN}{bottom_border}{TUI.RESET}\n")
 
 def run_outline():
     print_logo()

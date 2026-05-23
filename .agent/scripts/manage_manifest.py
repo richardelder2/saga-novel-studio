@@ -134,12 +134,15 @@ def print_dashboard(project_list, current_path):
     GRAY = "\033[90m"
     BOLD = "\033[1m"
     RESET = "\033[0m"
+    
+    # Sunset Orange accent color matching the SAGA theme
+    BORDER_COLOR = "\033[38;5;208m"
 
-    print(f"\n{BOLD}{B_MAGENTA}┌────────────────────────┬──────────────────┬──────┬────────┬────────┬─────────────┐{RESET}")
-    print(f"{BOLD}{B_MAGENTA}│{RESET}                       {BOLD}{B_WHITE}📖 THE NOVEL FACTORY DIRECTORY 📖{RESET}                      {BOLD}{B_MAGENTA}│{RESET}")
-    print(f"{BOLD}{B_MAGENTA}├────────────────────────┼──────────────────┼──────┼────────┼────────┼─────────────┤{RESET}")
-    print(f"{BOLD}{B_MAGENTA}│{RESET} {BOLD}{B_CYAN}{'Title':<22}{RESET} {BOLD}{B_MAGENTA}│{RESET} {BOLD}{B_CYAN}{'Phase':<16}{RESET} {BOLD}{B_MAGENTA}│{RESET} {BOLD}{B_CYAN}{'Chap':<4}{RESET} {BOLD}{B_MAGENTA}│{RESET} {BOLD}{B_CYAN}{'Words':<6}{RESET} {BOLD}{B_MAGENTA}│{RESET} {BOLD}{B_CYAN}{'Critic':<6}{RESET} {BOLD}{B_MAGENTA}│{RESET} {BOLD}{B_CYAN}{'Git Branch':<11}{RESET} {BOLD}{B_MAGENTA}│{RESET}")
-    print(f"{BOLD}{B_MAGENTA}├────────────────────────┼──────────────────┼──────┼────────┼────────┼─────────────┤{RESET}")
+    print(f"\n{BOLD}{BORDER_COLOR}┌────────────────────────┬──────────────────┬──────┬────────┬────────┬─────────────┐{RESET}")
+    print(f"{BOLD}{BORDER_COLOR}│{RESET}                     \033[1;38;5;220m📖 SAGA NOVEL ENGINE DIRECTORY 📖\033[0m                      {BOLD}{BORDER_COLOR}│{RESET}")
+    print(f"{BOLD}{BORDER_COLOR}├────────────────────────┼──────────────────┼──────┼────────┼────────┼─────────────┤{RESET}")
+    print(f"{BOLD}{BORDER_COLOR}│{RESET} {BOLD}\033[1;38;5;220m{'Title':<22}{RESET} {BOLD}{BORDER_COLOR}│{RESET} {BOLD}\033[1;38;5;220m{'Phase':<16}{RESET} {BOLD}{BORDER_COLOR}│{RESET} {BOLD}\033[1;38;5;220m{'Chap':<4}{RESET} {BOLD}{BORDER_COLOR}│{RESET} {BOLD}\033[1;38;5;220m{'Words':<6}{RESET} {BOLD}{BORDER_COLOR}│{RESET} {BOLD}\033[1;38;5;220m{'Critic':<6}{RESET} {BOLD}{BORDER_COLOR}│{RESET} {BOLD}\033[1;38;5;220m{'Git Branch':<11}{RESET} {BOLD}{BORDER_COLOR}│{RESET}")
+    print(f"{BOLD}{BORDER_COLOR}├────────────────────────┼──────────────────┼──────┼────────┼────────┼─────────────┤{RESET}")
     
     for item in sorted(project_list, key=lambda x: x["manifest"].get("title", "")):
         path = item["path"]
@@ -188,10 +191,10 @@ def print_dashboard(project_list, current_path):
             branch_styled = f"{GRAY}{branch:<11}{RESET}"
             row_marker = ""
             
-        print(f"{BOLD}{B_MAGENTA}│{RESET} {title_styled} {BOLD}{B_MAGENTA}│{RESET} {phase_styled} {BOLD}{B_MAGENTA}│{RESET} {chap_styled} {BOLD}{B_MAGENTA}│{RESET} {words_styled} {BOLD}{B_MAGENTA}│{RESET} {critic_styled} {BOLD}{B_MAGENTA}│{RESET} {branch_styled} {BOLD}{B_MAGENTA}│{RESET}{row_marker}")
+        print(f"{BOLD}{BORDER_COLOR}│{RESET} {title_styled} {BOLD}{BORDER_COLOR}│{RESET} {phase_styled} {BOLD}{BORDER_COLOR}│{RESET} {chap_styled} {BOLD}{BORDER_COLOR}│{RESET} {words_styled} {BOLD}{BORDER_COLOR}│{RESET} {critic_styled} {BOLD}{BORDER_COLOR}│{RESET} {branch_styled} {BOLD}{BORDER_COLOR}│{RESET}{row_marker}")
         
-    print(f"{BOLD}{B_MAGENTA}└────────────────────────┴──────────────────┴──────┴────────┴────────┴─────────────┘{RESET}")
-    print(f" {BOLD}{WHITE}Total Projects Tracked:{RESET} {B_CYAN}{len(project_list)}{RESET}\n")
+    print(f"{BOLD}{BORDER_COLOR}└────────────────────────┴──────────────────┴──────┴────────┴────────┴─────────────┘{RESET}")
+    print(f" {BOLD}{WHITE}Total Projects Tracked:{RESET} \033[1;38;5;220m{len(project_list)}{RESET}\n")
 
 def main():
     parser = argparse.ArgumentParser(description="Manage project manifests and multi-project registry.")
