@@ -1,40 +1,92 @@
-# Novel Writing Workspace (Agent Edition)
+# 🌌 SAGA: The Novel Engineering Studio 🌌
 
-Welcome to your AI-powered writing studio. This workspace is designed to replicate the "Nerdy Novelist" workflows directly in your IDE, using me (the AI Agent) as your collaborator.
+SAGA is a high-fidelity, model-agnostic command-line writing assistant and autonomous novel engineering factory. Designed to run directly inside your favorite IDE, SAGA pair-programs with you—integrating creative narrative departmental agents (the Architect, Scribe, and Evaluator) with robust terminal status dashboards and multi-voice audiobook synthesis.
 
-## Automation (Slash Commands)
+---
 
-This workspace is equipped with **Slash Commands** to automate your process.
+## 🌟 Key Features
 
-1.  **Idea Generation**:
-    -   Run `/story-idea` to brainstorm and create your premise.
-2.  **Outlining**:
-    -   Run `/story-outline` to have the Architect generate a full chapter outline.
-3.  **Drafting**:
-    -   Run `/write-chapter` (e.g., "Chapter 1") to have the Scribe draft a scene based on your beats.
-4.  **Critique**:
-    -   Run `/critique-chapter` to get a Deep Editor review.
-5.  **Publishing**:
-    -   Run `/create-cover` to generate cover art.
-    -   Run `/compile-manuscript` to merge all chapters into a single file for export.
+*   **Premium TUI Split-View status Card:** Real-time tracking of active novel drafting progress, chapters, and word counts, alongside color-coded adversarial score gates and suggested next actions.
+*   **Adversarial Score Gates:** Programmatic self-correction retry loops that automatically audit drafted chapters for POV filter words, slop clichés, and dialogue subtext using Gemini Pro/Flash before saving files.
+*   **Autonomous YOLO Mode:** Hands-free, end-to-end novel engineering. Sit back and watch SAGA orchestrate outlines, seed beatsheets, draft chapters, update character lore profiles, and generate illustrations.
+*   **Complete Publishing Pipeline:** Compile eBook containers (.ePUB), print typeset HTML pages, parse dialogue maps, and synthesize high-quality, multi-voice WAV audiobooks with Gemini native TTS prebuilt voices.
+*   **Multi-Project State Isolation:** Absolute workspace isolation protecting your projects' story bibles and setting parameters, linked together by a centralized user-profile dashboard.
 
-## Directory Structure
+---
 
-- **00_Story_Bible/**: The source of truth for your story world.
-    - `characters/`: One Markdown file per character.
-    - `locations/`: Setting descriptions.
-    - `lore/`: Magic systems, history, technology.
-    - `style_guide.md`: Your voice, tone, and formatting rules.
-- **01_Planning/**: Where the story takes shape.
-    - `premise.md`: The "elevator pitch" or brain dump of your idea.
-    - `outline.md`: High-level chapter summaries.
-    - `beats/`: Detailed beat sheets for every scene (e.g., `chapter_01_beats.md`).
-- **02_Drafting/**: The manuscript itself.
-- **03_Review/**: Editor notes and alternate drafts.
-- **04_Publishing/**: Generated covers and final exports.
-- **.agent/**: System instructions and workflows.
+## 📂 Workspace Directory Structure
 
-## Getting Started
+Every SAGA workspace is structured as a clean, standardized story vault:
 
-1.  Open `00_Story_Bible/style_guide.md` and fill in your preferences.
-2.  Run `/story-idea` to start brainstorming!
+```text
+├── 00_Story_Bible/          # Source of truth for your story world
+│   ├── characters/          # Markdown files outlining character profiles & voices
+│   ├── settings/            # Location descriptions and environments
+│   ├── market_analysis.md   # Cynical market strategy, red/blue ocean gaps
+│   └── style_guide.md       # Voice profiles, pacing directives, and anti-slop rules
+├── 01_Planning/             # Narrative architecture files
+│   ├── premise.md           # Loglines, core themes, and value shifts
+│   ├── outline.md           # High-level chapter structural outline
+│   └── beats/               # Scene-by-scene beat sheets (e.g. chapter_01_beats.md)
+├── 02_Drafting/             # Clean markdown chapter drafts (e.g. chapter_01.md)
+├── 03_Review/               # Adversarial critique scorecard logs and edits
+├── 04_Publishing/           # Generated ePUBs, print typeset books, and WAV audiobooks
+└── .agent/                  # Specialized agent system instructions
+```
+
+---
+
+## 🚀 Getting Started & Installation
+
+### 1. Prerequisites
+SAGA requires **Python 3.10 or higher** and a **Gemini Developer API Key**. 
+Generate your API key for free on [Google AI Studio](https://aistudio.google.com/).
+
+### 2. Quick Onboarding
+1. Clone this repository to your desktop or workspace directory.
+2. Duplicate `.env.example` and rename it to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+3. Open `.env` and configure your API key:
+   ```env
+   GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+   ```
+4. Register SAGA globally into your terminal PATH:
+   ```bash
+   pip install --editable .
+   ```
+
+You can now summon SAGA anywhere in your terminal simply by running `saga`!
+
+---
+
+## 💻 CLI Commands Quick Reference
+
+| Goal | Command | Description |
+| :--- | :--- | :--- |
+| **Summon SAGA / status** | `saga` or `saga --status` | Launches the interactive starting wizard or split-view status card. |
+| **List All Books** | `saga --dashboard` | Renders a gold-accented double-bordered registry directory table. |
+| **New Book setup** | `saga --init <folder>` | Seeds a fresh isolated novel directory with clean templates. |
+| **Story Outline** | `saga --outline` | Initiates cynical market analysis and 6-beat chapter outlining. |
+| **Chapter Draft** | `saga --draft <num>` | Pairs Scribe and Evaluator in self-correction retry loops. |
+| **Compile & Publish** | `saga --publish` | Packs print typesets, ePUBs, speaker CSVs, and WAV audiobooks. |
+| **Autonomous YOLO** | `saga --yolo` | Spins up the autonomous end-to-end novel factory. |
+| **Configuration** | `saga --config` | Launches the interactive model and credentials editor. |
+
+---
+
+## 💖 Acknowledgments & Inspirations
+
+SAGA is built on the shoulders of giants in the creative writing and developer tooling communities. We want to give special thanks to our core inspirations:
+
+*   **The Nerdy Novelist:** For pioneering the structural planning, story-grid beatsheets, and developmental pair-drafting methodologies that serve as the foundation for the Scribe and Architect agents.
+*   **Nous Research (`AutoNovel`):** For benchmarking creative multi-agent autonomous creative pipelines, demonstrating the power of adversarial AI storytelling loops.
+*   **Claude Code (Anthropic):** For inspiring SAGA's premium terminal TUI split-column border layout designs and mathematical padding formats.
+*   **Hermes-Agent:** For shaping the sleek, gold-accented double-bordered registry grid console displays.
+
+---
+
+## 📄 License
+
+This repository is open-sourced under the permissive **[MIT License](LICENSE)**. Feel free to clone, edit, extend, and share SAGA with your beta testers!
